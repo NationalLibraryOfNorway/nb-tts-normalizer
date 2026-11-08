@@ -1,0 +1,14 @@
+nb-tts-normalizer
+Copyright 2026 National Library of Norway
+
+Developed under the Språkmodeller team with implementation assistance from
+OpenAI Codex.
+
+NbAiLab's Norwegian Wav2Vec2 normalization scripts and the
+peresolb/number-conversion project informed the initial investigation.
+The arithmetic verbalizer and span engine in this repository are new
+implementations; the upstream converter is not bundled.
+
+Språkrådet's language guidance informed reading conventions. The optional
+VoxCPM adapter targets the interface supplied by OpenBMB's VoxCPM project.
+See README.md and SOURCES.md for acknowledgements and source references.

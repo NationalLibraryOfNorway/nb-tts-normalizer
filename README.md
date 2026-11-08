@@ -1,0 +1,306 @@
+# Norwegian TTS normalization: Bokmål frontend
+
+[![Tests](https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/actions/workflows/tests.yml/badge.svg)](https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/actions/workflows/tests.yml)
+
+A dependency-free Python frontend for an already Norwegian-capable TTS model.
+It expands recognized written forms into spoken Bokmål, records exact source
+spans, and retains unresolved spans with review issues. This is an initial
+ruleset, not a complete Norwegian normalizer or a pronunciation guarantee.
+
+The VoxCPM2 adapter disables its bundled Chinese/English normalizer. Attaching
+this frontend does not require retraining the acoustic model. It can also be used
+with any TTS pipeline that accepts Norwegian words as text. It contains no model
+weights, ASR pipeline, phonemizer, or speech data.
+
+## Install and quick start
+
+Requires **Python 3.10 or newer**. Install from GitHub:
+
+```bash
+python -m pip install 'git+https://github.com/NationalLibraryOfNorway/nb-tts-normalizer.git'
+nb-tn 'Saken gjelder kr 150,- jf. § 2, med frist 1. mai (ca. 10–15 dager).'
+```
+
+Output:
+
+```text
+Saken gjelder hundre og femti kroner jamfør paragraf to, med frist første mai (cirka ti til femten dager).
+```
+
+For a local editable installation:
+
+```bash
+git clone https://github.com/NationalLibraryOfNorway/nb-tts-normalizer.git
+cd nb-tts-normalizer
+python -m pip install -e .
+python -m nb_tn --json 'Åse betaler 50 % den 1. mai.'
+python -m nb_tn --strict 'AB123'
+```
+
+There are no runtime dependencies beyond Python's standard library. Running
+`python -m nb_tn` from the source checkout also works without installation.
+Installation uses setuptools as a build dependency; VoxCPM is installed separately
+in the environment where you synthesize audio.
+
+## Command-line use and review
+
+Omitting the text argument reads stdin. `--json` includes the original text,
+normalized text, replacements, review issues, and `needs_review`. `--strict`
+exits with status 2 if any review issue exists; it emits no plain text in that
+case, but still emits JSON when combined with `--json`. Without `--strict`,
+plain text output includes unchanged unresolved spans and warnings go to stderr.
+
+## Python API
+
+```python
+from nb_tn import NorwegianNormalizer
+
+normalizer = NorwegianNormalizer()
+report = normalizer.analyze("kr 150,-, 3,14 og 1. mai")
+assert report.text == "hundre og femti kroner, tre komma en fire og første mai"
+assert not report.needs_review
+```
+
+Each replacement contains `start`, `end`, `original`, `spoken`, and `category`.
+Offsets index the **original** Python string in Unicode code points, with an
+exclusive end; they are not byte offsets or JavaScript UTF-16 offsets. Replacements
+are non-overlapping and sorted. Apply them right-to-left if reconstructing the
+result yourself. Unknown spans have issues with the same source-offset convention.
+No uncalibrated numeric confidence scores are emitted.
+
+Use `analyze()` whenever unresolved symbols matter. The convenience method
+`normalizer.normalize(text)` returns only the normalized string and does not
+raise on review issues. Input source text is never mutated.
+
+For example:
+
+```python
+report = normalizer.analyze("Frist: 31. februar 2026. Referanse: AB123.")
+assert report.needs_review
+assert report.text == report.original
+for issue in report.issues:
+    print(issue.start, issue.end, issue.original, issue.reason)
+```
+
+The default acronym dictionary can be replaced explicitly:
+
+```python
+normalizer = NorwegianNormalizer(acronyms={"API": "a pe i", "NRK": "enn err kå"})
+assert normalizer.normalize("API og NRK") == "a pe i og enn err kå"
+```
+
+This argument replaces the dictionary rather than merging with its defaults.
+
+## VoxCPM2 integration
+
+Use the already loaded fine-tune or LoRA model from your existing inference code:
+
+```python
+from nb_tn.voxcpm import generate_norwegian
+
+# model = your already loaded Norwegian VoxCPM2 model
+audio, report = generate_norwegian(
+    model,
+    "Fristen er 1. mai, og beløpet er kr 150,-.",
+    seed=7,
+    # reference_wav_path="...",  # Existing generation options pass through.
+)
+```
+
+This calls `model.generate(text=report.text, normalize=False, ...)`. The adapter
+defaults to strict review: an issue raises `ValueError` **before** invoking the
+model. `strict=False` explicitly permits synthesis of unchanged unresolved spans.
+For custom review flows, call `analyze()` first, review the report, and call the
+model yourself. `.normalize(text)` is a convenient string-only method; it does
+not block or expose review issues.
+
+Prompt transcripts are passed through as supplied; they should describe what
+is actually spoken in the reference recording. Pass only speech text to this
+adapter. If you use VoxCPM's `(control instruction)` prefixes, normalize the speech
+body first and then attach the control prefix yourself. Streaming generation is
+not wrapped in this initial adapter.
+
+## Design choices
+
+The pipeline applies ordered rules to the **original** string, claims matching
+source spans, then reconstructs the spoken text. A span that has already been
+claimed cannot be rewritten by a later rule. Invalid recognized forms also
+claim their spans, so a failed date or amount is not partly converted by the
+generic number rules.
+
+Structured forms take precedence: protected URLs/identifiers, explicit versions,
+legal citations and labeled phones, clocks and contextual ratios, dates, then
+fractions, quantities/ranges, ordinals/list markers, dictionaries, and finally
+bare numbers. For example, `§2-1` retains its chapter/section structure while
+`10-15` is a range; `v1.2.26` is a version while `1.2.26` is a date.
+
+The implementation deliberately uses deterministic rules and a compact arithmetic
+number verbalizer. It needs no model download, LLM call, credentials, network,
+GPU, or time-dependent inference at runtime. These choices make normalization
+inspectable and allow a single faulty rule to be corrected without retraining
+the speech model. They also mean that broad semantic disambiguation is outside
+the package's capabilities.
+
+The code is split into:
+
+- `nb_tn/normalizer.py`: rule precedence, span ownership, date/quantity parsing,
+  and reports.
+- `nb_tn/numbers.py`: cardinal, ordinal and year readings.
+- `nb_tn/readings.py`: fraction, version, letter, Roman numeral and digit readings.
+- `nb_tn/legal.py`: chapter/section paths, lists, ranges and subdivisions.
+- `nb_tn/voxcpm.py`: optional adapter for an already loaded model.
+- `nb_tn/__main__.py`: CLI and strict-mode exit behavior.
+
+To extend coverage, add a structured rule before the generic fallback, include
+successful and rejected examples in the tests, and document any new ambiguity
+policy. Do not silently discard unsupported numbers or symbols.
+
+## Fixed reading policy and coverage
+
+| Written form | Spoken form / policy |
+| --- | --- |
+| `150`, `-5`, `10 000` | `hundre og femti`, `minus fem`, `ti tusen` |
+| `3,14` | `tre komma en fire`; fractional digits are read individually |
+| `kr 150,-`, `150 kr`, `NOK 1,01` | NOK amounts; the last includes `en krone og ett øre` |
+| `123.456,78 kr`, `5 kr 50 øre` | Dotted grouping in explicit NOK amounts; explicit kroner/øre fields |
+| `1. mai`, `01.05.2026`, `2026-05-01` | Ordinal day, Norwegian month name, optional year; calendar validity checked |
+| `1 . 5 . 2026`, `1/5/2026`, `1-5-26`, `1mai2026`, `1. sept. 2026` | Tolerate spacing, separators, abbreviated months, missing dots and two-digit years |
+| `01.05`, `1.–3. mai`, `1.-3.5.2026` | Day/month dates and date ranges; Norwegian ordering |
+| `året 1998`, date year `1998` | `nitten nittiåtte`; 1905 uses `nitten null fem`; 2005 uses `to tusen og fem` |
+| `kl. 17:03`, `klokken 09.05`, `kl. 0905`, `12:30` | Digital clock reading; no colloquial `halv`/`kvart` forms |
+| `kl. 09.00-10.30`, `09:00—10:30` | Clock ranges with `til` |
+| `10–15`, `10-15 km`, `10—15 %`, `kr 10−15` | Numeric ranges with ASCII, Unicode hyphens/dashes, and minus-shaped separators |
+| `%`, `‰` with a number | `prosent`, `promille` |
+| `km/t`, `m/s`, `km`, `cm`, `mm`, `m`, `m²`, `m³` | Expanded measures, including attached `5km` |
+| `m2`, `m3`, `cm2`, `cm3` | Equivalent to the corresponding superscript forms; attached `75m2` also works |
+| `kg`, `g`, `mg`, `µg`, `ml`, `dl`, `l`, `min`, `sek`, `°C`, `stk.` | Selected measures and singular/plural forms |
+| `§ 2`, `§§ 3–5` | `paragraf to`, `paragrafene tre til fem` |
+| `§2-1`, `§2.1`, `§2-1a`, `§2(1)(b)` | Compound sections, suffixes, tolerated dots, parenthesized ledd/bokstav notation |
+| `§§ 3-4 til 3-7`, `§§ 2-1 og 2-2` | Preserve chapter/section structure inside compound lists and ranges |
+| `1. plass`, `2.ledd`, `bokstav b` | Selected ordinals (1–9999), missing-space repair, and spoken letter names |
+| `1.`, `a)`, `II.`, `•` at a list-item start | `en.`, `a.`, `to.`, `punkt.`; always a full stop after the spoken marker |
+| `tlf. 01234567`, `tlf. +47 12345678` | `telefon` plus individual digits, including leading zeros and `pluss` |
+| `4:3`, `1 : 50 000`, `forholdet er 16:10` | `fire til tre`, `en til femti tusen`, contextual ratio instead of clock |
+| `1/2`, `2/3`, `8/13`, `2 1/2`, `½`, `⅔` | `en halv`, `to tredeler`, `åtte trettendeler`, mixed and Unicode fractions |
+| `1/2 min`, `2/3 min` | Singular unit after a fraction: `ett halvt minutt`, `to tredeler minutt` |
+| `v1.2.3`, `versjon 1.2`, `1.2.3` | Version components separated by `punkt`; `v` becomes `versjon` |
+| `v1.2.3-beta.2`, `v1.2.3-rc.1+build.42` | Release labels, numbered prereleases, and build metadata |
+| `jf.`, `f.eks.`, `bl.a.`, `ca.`, `osv.`, `m.m.`, `nr.`, `kap.`, `pkt.` | Explicit abbreviation dictionary |
+| `NAV`, `NRK`, `USA`, `EU`, `EØS` | Exact-case pronunciation dictionary; caller can replace it |
+
+Modern forms `tjue`, `tretti`, `sju` are used. Bokmål `en`/`ett` are selected in
+known contexts; number words are emitted without stress accents. This does not
+offer Nynorsk or dialect selection.
+
+The arithmetic converter supports signed integers with absolute value below
+one trillion (`10**12`), including millions and milliards. **Bare numbers of
+seven or more digits are nevertheless flagged**, because they may be phone or
+other identifiers. Explicit supported amount/measure contexts can use the larger
+range. A plain four-digit integer uses the cardinal reading unless it occurs in
+a recognized date or is introduced by `år`/`året`.
+
+## Review and limitations
+
+Impossible dates/times, zero-denominator fractions, ambiguous multi-slash forms,
+clock seconds, machine timestamps, URLs/emails, alphanumeric IDs, leading-zero
+bare numbers, and labeled postal/account/organization identifiers are retained
+and flagged. Unsupported currencies and numbers outside the converter's range
+also remain unchanged. Malformed **formatting** is tolerated; invalid calendar
+values such as `31. februar` are not invented or corrected to another date.
+
+Disambiguation policies are explicit and deterministic:
+
+- Full numeric dates use day–month–year, or year–month–day when the first field
+  has four digits. Dot-separated day/month forms without a year are dates, even
+  if the final month dot is missing. They are not English decimal numbers.
+- Two-digit years use a fixed cutoff: `00`–`49` mean 2000–2049; `50`–`99` mean
+  1950–1999. Change `NorwegianNormalizer(two_digit_year_pivot=...)` if needed.
+  No current date or moving century window is consulted. Compact dates require
+  an explicit `dato`/`datert` cue; valid YYYYMMDD is tried before DDMMYYYY.
+- A two-field slash expression is a fraction. An explicit date cue such as
+  `dato 1/5` selects a date; a full three-field slash date includes a year.
+- Bare `HH:MM` is a clock. A ratio cue (`forholdet`, `format`, `målestokk`, etc.),
+  colon spaces, a ratio sign, or a `-format`/`-forhold` suffix selects a ratio.
+  Dotted clock ranges require `kl.`/`klokka`/`klokken` to avoid stealing dates.
+- Any supported hyphen/dash between numeric range endpoints means `til`,
+  including ASCII `-` and Unicode minus `−`. This user-requested tolerance means
+  bare subtraction or scores written that way will also be read as ranges.
+  Dates, labeled phones, versions, and legal references are parsed first.
+- In a single section reference, `§2-1` is a chapter/section path, not an interval.
+  Plural `§§3-5` is a range; `§§3-4 til 3-7` and `§§2-1 og 2-2` contain paths.
+  Ambiguous flattened compound ranges such as `§§3-4-3-7` still need review.
+- Enumeration starts are line starts (with indentation) or the first marker
+  after a colon. Numeric labels use cardinal numbers. Single letters use letter
+  names; uppercase I/V/X and multi-letter Roman labels use their numeric values.
+  Bullets use `punkt.`. Nested dotted list numbers remain ambiguous with dates.
+- Explicit `v` or `versjon` context wins over dates. Without context, a valid
+  three-field date wins over a version: `1.2.26` is a date, `v1.2.26` is a version,
+  and `1.2.3` is a version. Numeric version components with leading zeros are
+  read digit by digit. Unknown release labels are spelled out; the small known
+  set includes alfa, beta, RC and build. Version-reading details are application
+  policy, not a claim that Språkrådet prescribes SemVer pronunciation.
+
+Detection is finite: an empty issue list does **not** mean every possible symbol,
+abbreviation, acronym, unit, or contextual ambiguity was recognized. Bare
+forms can have other meanings in a particular domain. Corpus-specific rules and
+a listening evaluation are still needed. The reasoning and sources for reading
+choices are recorded in [SOURCES.md](SOURCES.md).
+
+Ordinary sentence punctuation and whitespace outside replacement spans are
+preserved. Abbreviation dots are removed during expansion; final sentence dots
+are retained at end of input (including before closing quotes), and `stk.` also
+retains its dot before a following capitalized sentence. General sentence
+boundary disambiguation around abbreviations remains incomplete.
+
+Tests cover supported and rejected cases, source offsets, repeated spans,
+punctuation, CLI exit behavior, and the adapter using a fake model. **Actual
+Norwegian VoxCPM2 audio has not been evaluated.** The next validation is a fixed
+listening set comparing raw text, manually expanded text, and this frontend with
+the same fine-tune, speaker reference, and seed.
+
+## Development and tests
+
+```bash
+python -m pip install -e .
+python -m unittest discover -s tests -v
+```
+
+CI runs the suite on Python 3.10, 3.12 and 3.13. Tests include exact spoken-text
+expectations, malformed inputs, ambiguity priorities, Unicode dash variants,
+reconstruction from original offsets, idempotence of representative outputs,
+CLI behavior, and a mocked VoxCPM adapter. They do not measure perceptual audio
+quality or establish corpus-wide normalization accuracy.
+
+Other limitations include English decimal-point conventions, unknown acronym
+pronunciations, currencies other than the supported NOK forms, arbitrary unit
+notations, pronunciation changes across Norwegian dialects, and normalization
+across chunk boundaries. Match whole sentences or complete list items where
+possible; slicing a token between chunks can remove the context a rule needs.
+
+## Credits and provenance
+
+Developed for the [National Library of Norway](https://github.com/NationalLibraryOfNorway)
+under the Språkmodeller team, with implementation assistance from OpenAI Codex.
+
+The initial investigation drew on the `cardinal_numbers.py` and evaluation
+normalization scripts accompanying the **NbAiLab Norwegian Wav2Vec2 Bokmål
+300M/1B models**, including their v2 releases. Their converter credits
+[peresolb/number-conversion](https://github.com/peresolb/number-conversion/).
+Those projects supplied useful starting examples and motivation; this repository
+uses a new compact arithmetic implementation and span engine, rather than
+vendoring the upstream bidirectional converter or its ASR cleanup pipeline.
+
+Reading conventions were checked against **Språkrådet** guidance on dates,
+fractions, ratios, legal references, abbreviations, and list markers.
+**OpenBMB's VoxCPM project** provides the inference interface used by the optional
+adapter. These acknowledgements do not imply upstream review or endorsement.
+
+See [SOURCES.md](SOURCES.md) for the exact inspected model revisions, links to
+language guidance, and the distinction between source conventions and application
+policies such as the year cutoff, tolerant separators and software-version readings.
+
+## License
+
+Apache License 2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). This license covers
+the implementation and documentation in this repository. The external models and
+projects credited above retain their own licenses and are not bundled here.

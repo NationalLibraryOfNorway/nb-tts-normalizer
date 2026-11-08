@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nb-tts-normalizer"
+version = "0.2.0"
+description = "Conservative Bokmaal text normalization for Norwegian TTS"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [{name = "National Library of Norway, Språkmodeller"}]
+keywords = ["norwegian", "bokmaal", "tts", "text-normalization"]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer"
+Issues = "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/issues"
+
+[project.scripts]
+nb-tn = "nb_tn.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["nb_tn*"]
