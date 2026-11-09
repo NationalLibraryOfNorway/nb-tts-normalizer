@@ -13,8 +13,8 @@ def main():
     parser.add_argument("--strict", action="store_true", help="Exit 2 without emitting text if review is needed")
     parser.add_argument("--currency-locale", choices=("nb-NO", "en-US"), default="nb-NO",
                         help="Input separators for currency amounts only; output stays Norwegian")
-    parser.add_argument("--dollar-currency", choices=("USD", "CAD", "AUD"), help="Explicit assumption for bare $")
-    parser.add_argument("--yen-currency", choices=("JPY", "CNY"), help="Explicit assumption for bare ¥")
+    parser.add_argument("--dollar-currency", choices=("USD", "CAD", "AUD"), help="Override bare $ currency (default: USD)")
+    parser.add_argument("--yen-currency", choices=("JPY", "CNY"), help="Override bare ¥ currency (default: CNY)")
     args = parser.parse_args()
     symbols = {}
     if args.dollar_currency:

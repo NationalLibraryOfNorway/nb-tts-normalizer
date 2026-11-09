@@ -125,3 +125,8 @@ The ISO minor-unit metadata is a parsing policy, rather than a restriction on
 every possible quoted price. The implementation neither performs
 language identification nor claims to handle arbitrary code-switching. Existing
 NOK forms and strict review behavior are retained.
+
+The application defaults for bare symbols are USD for `$` and CNY for `¥`, as
+explicitly requested for this project. Per-normalizer overrides, explicit
+`None` to require review, qualified aliases and paired ISO codes still take
+precedence. These defaults are user-selected conventions rather than ISO rules.

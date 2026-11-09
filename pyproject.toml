@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nb-tts-normalizer"
-version = "0.4.0"
+version = "0.4.1"
 description = "Conservative Bokmaal text normalization for Norwegian TTS"
 readme = "README.md"
 license = {file = "LICENSE"}

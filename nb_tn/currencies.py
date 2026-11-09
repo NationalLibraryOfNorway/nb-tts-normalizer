@@ -38,7 +38,7 @@ CURRENCIES = {
     "KWD": Currency("kuwaitisk dinar", "kuwaitiske dinarer", decimals=3, minor_singular="fils", minor_plural="fils"),
 }
 QUALIFIED = {"US$": "USD", "C$": "CAD", "CA$": "CAD", "A$": "AUD", "AU$": "AUD", "CN¥": "CNY", "JP¥": "JPY"}
-SYMBOL_DEFAULTS = {"kr": "NOK", "kr.": "NOK", "€": "EUR", "£": "GBP", "$": None, "¥": None}
+SYMBOL_DEFAULTS = {"kr": "NOK", "kr.": "NOK", "€": "EUR", "£": "GBP", "$": "USD", "¥": "CNY"}
 SYMBOL_FAMILIES = {"$": {"USD", "CAD", "AUD"}, "¥": {"JPY", "CNY"},
                    "kr": {"NOK", "SEK", "DKK"}, "kr.": {"NOK", "SEK", "DKK"},
                    "€": {"EUR"}, "£": {"GBP"}}
@@ -99,7 +99,7 @@ class CurrencyPolicy:
 
     def _resolve(self, markers: list[str]) -> str:
         # An explicit code/qualified name disambiguates a compatible symbol:
-        # $10 CAD is CAD even when the optional bare-$ default is USD.
+        # $10 CAD is CAD even when the bare-$ default is USD.
         explicit = [self._code(m) for m in markers if m not in SYMBOL_FAMILIES
                     and m.casefold() not in _AMBIGUOUS_WORDS]
         if explicit:

@@ -27,4 +27,4 @@ jobs:
         working-directory: ${{ runner.temp }}
         run: |
           nb-tn --strict 'v1.2.3 og 75 m2, 5 MW og NRK P1+'
-          nb-tn --strict --currency-locale en-US --dollar-currency USD '$12.50'
+          nb-tn --strict --currency-locale en-US '$12.50 og ¥100'

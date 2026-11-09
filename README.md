@@ -52,7 +52,7 @@ plain text output includes unchanged unresolved spans and warnings go to stderr.
 
 `--currency-locale {nb-NO,en-US}` selects the **input number format for monetary
 amounts only**. `--dollar-currency {USD,CAD,AUD}` and
-`--yen-currency {JPY,CNY}` provide explicit assumptions for bare `$` and `¥`.
+`--yen-currency {JPY,CNY}` override the defaults `$` -> USD and `¥` -> CNY.
 These options do not change the spoken language; see the currency section below.
 
 ## Python API
@@ -242,6 +242,8 @@ numeric monetary ranges are recognized.
 | Input, default `currency_locale="nb-NO"` | Output |
 | --- | --- |
 | `100 USD` | `hundre amerikanske dollar` |
+| `$10` | `ti amerikanske dollar` |
+| `¥100` | `hundre kinesiske yuan` |
 | `EUR 12,50` | `tolv euro og femti cent` |
 | `GBP 1,01` | `ett britisk pund og en penny` |
 | `SEK 1,01` | `en svensk krone og ett øre` |
@@ -272,14 +274,15 @@ assert norwegian.normalize("EUR 12,50") == "tolv euro og femti cent"
 
 us_format = NorwegianNormalizer(
     currency_locale="en-US",
-    symbol_currencies={"$": "USD", "¥": "JPY"},
+    symbol_currencies={"¥": "JPY"},  # Override yuan; $ already defaults to USD.
 )
 assert us_format.normalize("$12.50") == "tolv amerikanske dollar og femti cent"
 assert us_format.normalize("¥100") == "hundre japanske yen"
 ```
 
 ```bash
-nb-tn --strict --currency-locale en-US --dollar-currency USD '$12.50'
+nb-tn --strict --currency-locale en-US '$12.50'
+nb-tn --strict --yen-currency JPY '¥100'
 nb-tn --json '100 USD og EUR 12,50'
 ```
 
@@ -291,11 +294,15 @@ under `en-US`, but is flagged under `nb-NO` because three fractional digits
 exceed USD's configured precision. There is no automatic locale or language
 detection. The locale setting does not alter dates, units or other bare numbers.
 
-Symbol disambiguation is also explicit:
+Symbol defaults and overrides:
 
-- Bare `$` and `¥` are ambiguous and trigger review by default. Only these two
-  symbols can be configured through `symbol_currencies`; accepted mappings are
-  `$` -> USD/CAD/AUD and `¥` -> JPY/CNY. Settings are local to each normalizer.
+- Bare `$` defaults to **USD (US dollar)** and bare `¥` defaults to **CNY
+  (Chinese yuan)**. These are application defaults, not claims that the symbols
+  uniquely identify those currencies. Only these two symbols can be configured
+  through `symbol_currencies`; accepted mappings are `$` -> USD/CAD/AUD and
+  `¥` -> JPY/CNY. Omitted keys retain their defaults; settings are local to each
+  normalizer. Explicit `None`, e.g. `symbol_currencies={"$": None, "¥": None}`,
+  requires review for those bare symbols instead of assuming a currency.
 - `US$`, `C$`/`CA$`, `A$`/`AU$`, `JP¥` and `CN¥` are qualified aliases. Compatible
   paired codes also disambiguate: `$10 CAD` uses CAD even if the configured
   default for `$` is USD. Conflicting markers such as `€10 USD` are rejected.

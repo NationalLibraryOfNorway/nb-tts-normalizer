@@ -99,6 +99,27 @@ class CurrencyTests(unittest.TestCase):
         self.check_cases({"¥100": "hundre japanske yen"}, symbol_currencies={"¥": "JPY"})
         self.check_cases({"$10 CAD": "ti kanadiske dollar"}, symbol_currencies={"$": "USD"})
 
+    def test_bare_symbols_default_to_us_dollars_and_chinese_yuan(self):
+        cases = {"$5": "fem amerikanske dollar", "$12,50": "tolv amerikanske dollar og femti cent",
+                 "¥100": "hundre kinesiske yuan", "¥1,25": "en komma to fem kinesiske yuan"}
+        self.check_cases(cases)
+        self.check_cases(cases, symbol_currencies={})
+        # A partial override must preserve the other default and not mutate
+        # defaults for later independent normalizer instances.
+        self.check_cases({"$5 og ¥100": "fem kanadiske dollar og hundre kinesiske yuan"}, symbol_currencies={"$": "CAD"})
+        self.check_cases({"$5 og ¥100": "fem amerikanske dollar og hundre japanske yen"}, symbol_currencies={"¥": "JPY"})
+        self.check_cases(cases)
+
+    def test_symbol_defaults_can_still_be_disabled_for_review(self):
+        normalizer = NorwegianNormalizer(symbol_currencies={"$": None, "¥": None})
+        for text in ("$10", "¥100"):
+            report = normalizer.analyze(text)
+            self.assertEqual(report.text, text)
+            self.assertTrue(report.needs_review)
+        # Explicit qualified/code forms still work when bare symbols need review.
+        self.assertEqual(normalizer.normalize("$10 CAD"), "ti kanadiske dollar")
+        self.assertEqual(normalizer.normalize("JP¥100"), "hundre japanske yen")
+
     def test_ranges_and_matching_paired_markers(self):
         self.check_cases({
             "10–15 EUR": "ti til femten euro", "EUR 10-15": "ti til femten euro",
@@ -111,7 +132,7 @@ class CurrencyTests(unittest.TestCase):
         })
 
     def test_invalid_ambiguous_or_unsupported_amounts_stay_whole(self):
-        cases = ("$10", "¥10", "10 dollars", "EUR 1,234", "JPY 1,01", "KWD 1,2345", "USD 12.50",
+        cases = ("10 dollars", "EUR 1,234", "JPY 1,01", "KWD 1,2345", "USD 12.50",
                  "EUR 1 23", "EUR 1..234", "EUR 1,,2", "EUR 1.234 567", "USD 1.2.2026",
                  "US$10 CAD", "€10 USD", "EUR 10–GBP 15", "10 EUR–15 GBP", "-€-1",
                  "100 RUB", "₹100", "EUR 1000000000000")
@@ -144,7 +165,7 @@ class CurrencyTests(unittest.TestCase):
             def generate(self, **kwargs):
                 raise AssertionError("ambiguous currency must not reach the model")
         with self.assertRaises(ValueError):
-            generate_norwegian(Model(), "$10")
+            generate_norwegian(Model(), "$10", normalizer=NorwegianNormalizer(symbol_currencies={"$": None}))
 
     def test_cli_exposes_format_and_symbol_choices(self):
         completed = subprocess.run([sys.executable, "-m", "nb_tn", "--strict", "--json", "--currency-locale", "en-US",
@@ -154,13 +175,15 @@ class CurrencyTests(unittest.TestCase):
         self.assertEqual(report["text"], "tolv kanadiske dollar og femti cent")
         self.assertFalse(report["needs_review"])
 
-    def test_cli_requires_a_choice_for_bare_dollar(self):
-        completed = subprocess.run([sys.executable, "-m", "nb_tn", "--strict", "--json", "--currency-locale", "en-US",
-                                    "$12.50"], text=True, capture_output=True)
-        self.assertEqual(completed.returncode, 2)
-        report = json.loads(completed.stdout)
-        self.assertEqual(report["text"], "$12.50")
-        self.assertTrue(report["needs_review"])
+    def test_cli_uses_symbol_defaults_when_not_provided(self):
+        for text, expected in (("$12.50", "tolv amerikanske dollar og femti cent"), ("¥100", "hundre kinesiske yuan")):
+            with self.subTest(text=text):
+                completed = subprocess.run([sys.executable, "-m", "nb_tn", "--strict", "--json", "--currency-locale", "en-US",
+                                            text], text=True, capture_output=True)
+                self.assertEqual(completed.returncode, 0, completed.stderr)
+                report = json.loads(completed.stdout)
+                self.assertEqual(report["text"], expected)
+                self.assertFalse(report["needs_review"])
 
 
 if __name__ == "__main__":
