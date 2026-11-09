@@ -9,6 +9,8 @@ from typing import Callable, Mapping
 
 from .numbers import cardinal, ordinal, year
 from .legal import LEGAL_PATTERN, legal_reference
+from .channels import CHANNELS, channel_pattern
+from .units import UNKNOWN_UNIT_PATTERN, UNIT_END, UNIT_PATTERN, looks_like_unit, parse_unit
 from .readings import (DASH, DASH_CHARS, SIGN, SIGN_CHARS, VULGAR_FRACTIONS,
                        digits, fraction, letter, roman, version)
 
@@ -24,23 +26,6 @@ MONTH_ALIASES.update(dict(zip(("jan", "feb", "mar", "apr", "jun", "jul", "aug", 
                                   (1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12))))
 MONTH_ALIASES["sept"] = 9
 MONTH_PATTERN = "(?:" + "|".join(sorted(MONTH_ALIASES, key=len, reverse=True)) + ")"
-UNITS = {
-    "km/t": ("kilometer i timen", "kilometer i timen"),
-    "m/s": ("meter per sekund", "meter per sekund"),
-    "km": ("kilometer", "kilometer"), "cm": ("centimeter", "centimeter"),
-    "mm": ("millimeter", "millimeter"), "m": ("meter", "meter"),
-    "m²": ("kvadratmeter", "kvadratmeter"), "m³": ("kubikkmeter", "kubikkmeter"),
-    "m2": ("kvadratmeter", "kvadratmeter"), "m3": ("kubikkmeter", "kubikkmeter"),
-    "cm²": ("kvadratcentimeter", "kvadratcentimeter"), "cm2": ("kvadratcentimeter", "kvadratcentimeter"),
-    "cm³": ("kubikkcentimeter", "kubikkcentimeter"), "cm3": ("kubikkcentimeter", "kubikkcentimeter"),
-    "kg": ("kilo", "kilo"), "g": ("gram", "gram"),
-    "mg": ("milligram", "milligram"), "µg": ("mikrogram", "mikrogram"), "μg": ("mikrogram", "mikrogram"),
-    "ml": ("milliliter", "milliliter"), "dl": ("desiliter", "desiliter"),
-    "l": ("liter", "liter"), "min": ("minutt", "minutter"),
-    "sek": ("sekund", "sekunder"), "°c": ("grad celsius", "grader celsius"),
-    "stk.": ("stykk", "stykker"), "stk": ("stykk", "stykker"),
-}
-UNIT_PATTERN = "(?:" + "|".join(re.escape(u) for u in sorted(UNITS, key=len, reverse=True)) + ")"
 ABBREVIATIONS = {
     "f.eks.": "for eksempel", "bl.a.": "blant annet", "jf.": "jamfør",
     "ca.": "cirka", "osv.": "og så videre", "m.m.": "med mer",
@@ -113,9 +98,9 @@ def _amount(match: re.Match) -> str:
 
 def _unit(match: re.Match) -> str:
     raw = match["number"]
-    unit = match["unit"].lower()
+    unit = parse_unit(match["unit"])
     singular = _integer(raw.split(",")[0]) in (-1, 1) and "," not in raw
-    return _number(raw, neuter=unit in ("min", "sek", "g", "mg", "µg", "μg", "stk", "stk.")) + " " + UNITS[unit][not singular]
+    return _number(raw, neuter=unit.neuter) + " " + (unit.singular if singular else unit.plural)
 
 
 def _clock(match: re.Match) -> str:
@@ -160,10 +145,11 @@ class NorwegianNormalizer:
     """
 
     def __init__(self, *, acronyms: Mapping[str, str] | None = None,
-                 two_digit_year_pivot: int = 50):
+                 two_digit_year_pivot: int = 50, channels: Mapping[str, str] | None = None):
         if not 0 <= two_digit_year_pivot <= 100:
             raise ValueError("two_digit_year_pivot must be in 0..100")
         self.acronyms = dict(ACRONYMS if acronyms is None else acronyms)
+        self.channels = dict(CHANNELS if channels is None else channels)
         self.two_digit_year_pivot = two_digit_year_pivot
 
     def normalize(self, text: str) -> str:
@@ -175,10 +161,13 @@ class NorwegianNormalizer:
         issues: list[Issue] = []
 
         def apply(pattern: str, category: str, convert: Callable[[re.Match], str],
-                  *, flags: int = re.IGNORECASE) -> None:
+                  *, flags: int = re.IGNORECASE,
+                  accept: Callable[[re.Match], bool] | None = None) -> None:
             for match in re.finditer(pattern, text, flags):
                 start, end = match.span()
                 if any(start < b and a < end for a, b in occupied):
+                    continue
+                if accept is not None and not accept(match):
                     continue
                 occupied.append((start, end))
                 try:
@@ -204,9 +193,30 @@ class NorwegianNormalizer:
                 "URL/email needs an explicit reading policy")
         protect(r"\b\d{4}-\d{2}-\d{2}T\d[\w:.,+-]*", "machine timestamp")
         protect(r"\b\d{1,2}:\d{2}:\d{2}(?:[.,]\d+)?\b", "clock seconds need a reading policy")
-        protect(r"\b\d+(?:[ \t]*[:∶][ \t]*\d+){2,}\b", "multi-component ratio or time needs a reading policy")
+        protect(r"\b\d+(?:[:∶]\d+){2,}\b", "multi-component ratio or time needs a reading policy")
         protect(r"\b(?:org\.?\s*nr\.?|organisasjonsnummer|postnummer|postnr\.?|kontonummer|fødselsnummer)"
                 r"\s*:?\s*\+?\d[\d \u00a0-]*\d\b", "identifier needs a digit-reading policy")
+
+        # Dictionary names precede identifier/number rules; longest aliases win.
+        for name, spoken in sorted(self.channels.items(), key=lambda item: len(item[0]), reverse=True):
+            apply(r"(?<!\w)" + channel_pattern(name) + r"(?![\w+]|\.\w)", "channel",
+                  lambda m, s=spoken: s)
+
+        def physical_quantity(match: re.Match) -> bool:
+            """Ignore ordinary count nouns, but claim and flag unit-shaped errors."""
+            unit = match["unit"]
+            # dag is also the SI symbol for dekagram, but in ordinary Norwegian
+            # "1 dag" is a day. Leave that count noun to the number-only rule.
+            if unit == "dag" and match.start("unit") > 0 and text[match.start("unit") - 1].isspace():
+                return False
+            if unit.lower() in ("kr", "nok") or unit in ("%", "‰"):
+                return True
+            try:
+                parse_unit(unit)
+            except ValueError:
+                return looks_like_unit(unit, attached=match.start("unit") > 0
+                                       and text[match.start("unit") - 1].isnumeric())
+            return True
 
         # Explicit version/legal/clock context wins over date-like punctuation.
         version_body = (r"\d+(?:\.\d+)+(?:-[a-z0-9]+(?:[.-][a-z0-9]+)*)?"
@@ -329,26 +339,29 @@ class NorwegianNormalizer:
                 left = numerator_text.split()
                 whole = int(left[0]) if len(left) == 2 else None
                 numerator, denominator = int(left[-1]), int(denominator)
-            neuter = unit in ("min", "sek", "g", "mg", "µg", "μg", "stk", "stk.")
+            neuter = parse_unit(unit).neuter if unit is not None else False
             return fraction(numerator, denominator, whole=whole, negative=negative, neuter=neuter)
 
         def fractional_quantity(match: re.Match) -> str:
-            unit = match["unit"].lower()
-            name = {"kr": "krone", "nok": "krone", "%": "prosent", "‰": "promille"}.get(unit)
+            unit = match["unit"]
+            name = {"kr": "krone", "nok": "krone", "%": "prosent", "‰": "promille"}.get(unit.lower())
             if name is None:
-                name = UNITS[unit][0]  # Sprakradet: singular unit after a fraction.
-            return fraction_words(match["fraction"], unit=unit) + " " + name
+                name = parse_unit(unit).singular  # Sprakradet: singular after fractions.
+            physical = None if unit.lower() in ("kr", "nok", "%", "‰") else unit
+            return fraction_words(match["fraction"], unit=physical) + " " + name
         def fractional_range_quantity(match: re.Match) -> str:
-            unit = match["unit"].lower()
-            name = {"kr": "krone", "nok": "krone", "%": "prosent", "‰": "promille"}.get(unit)
-            name = name if name is not None else UNITS[unit][0]
-            return fraction_words(match["first"], unit=unit) + " til " + fraction_words(match["last"], unit=unit) + " " + name
+            unit = match["unit"]
+            name = {"kr": "krone", "nok": "krone", "%": "prosent", "‰": "promille"}.get(unit.lower())
+            name = name if name is not None else parse_unit(unit).singular
+            physical = None if unit.lower() in ("kr", "nok", "%", "‰") else unit
+            return fraction_words(match["first"], unit=physical) + " til " + fraction_words(match["last"], unit=physical) + " " + name
         apply(rf"{LEFT}(?P<first>{fraction_body})[ \t]*{DASH}[ \t]*(?P<last>{fraction_body})"
-              rf"[ \t]*(?P<unit>{UNIT_PATTERN}|kr|NOK|%|‰)(?!\w)", "fraction_range", fractional_range_quantity)
+              rf"[ \t]*(?P<unit>{UNIT_PATTERN}|kr|NOK|%|‰){UNIT_END}", "fraction_range", fractional_range_quantity,
+              flags=0, accept=physical_quantity)
         apply(rf"{LEFT}(?P<first>{fraction_body})[ \t]*{DASH}[ \t]*(?P<last>{fraction_body}){RIGHT}",
               "fraction_range", lambda m: fraction_words(m["first"]) + " til " + fraction_words(m["last"]))
-        apply(rf"{LEFT}(?P<fraction>{fraction_body})[ \t]*(?P<unit>{UNIT_PATTERN}|kr|NOK|%|‰)(?!\w)",
-              "fraction", fractional_quantity)
+        apply(rf"{LEFT}(?P<fraction>{fraction_body})[ \t]*(?P<unit>{UNIT_PATTERN}|kr|NOK|%|‰){UNIT_END}",
+              "fraction", fractional_quantity, flags=0, accept=physical_quantity)
         apply(rf"{LEFT}(?P<fraction>{fraction_body}){RIGHT}", "fraction",
               lambda m: fraction_words(m["fraction"]))
 
@@ -357,7 +370,7 @@ class NorwegianNormalizer:
             result = _number(first) + " til " + _number(last)
             unit = match.groupdict().get("unit")
             if unit:
-                result += " " + UNITS[unit.lower()][1]
+                result += " " + parse_unit(unit).plural
             return result
         range_pattern = rf"(?P<first>{NUMBER})[ \t]*{DASH}[ \t]*(?P<last>{NUMBER})"
         apply(rf"{LEFT}{range_pattern}\s*(?:kr\.?|NOK)\b", "currency_range",
@@ -380,20 +393,23 @@ class NorwegianNormalizer:
         protect(rf"(?:[€$£]\s*{NUMBER}|{NUMBER}\s*(?:EUR|USD|GBP|€|\$|£))",
                 "currency other than NOK needs an explicit reading policy")
 
-        apply(rf"{LEFT}{range_pattern}[ \t]*(?P<unit>{UNIT_PATTERN})(?!\w)",
-              "range", range_words)
+        apply(rf"{LEFT}{range_pattern}[ \t]*(?P<unit>{UNIT_PATTERN}){UNIT_END}",
+              "range", range_words, flags=0, accept=physical_quantity)
         apply(rf"{LEFT}{range_pattern}{RIGHT}", "range", range_words)
         protect(rf"(?<!\w)\d+(?:{DASH}\d+){{2,}}\b", "ambiguous multi-part hyphenated identifier")
         apply(rf"{LEFT}(?P<number>{NUMBER})\s*%(?!\w)", "percentage",
               lambda m: _number(m["number"]) + " prosent")
         apply(rf"{LEFT}(?P<number>{NUMBER})\s*‰(?!\w)", "percentage",
               lambda m: _number(m["number"]) + " promille")
-        apply(rf"{LEFT}(?P<number>{NUMBER})\s*(?P<unit>{UNIT_PATTERN})(?!\w)", "measure", _unit)
+        apply(rf"{LEFT}(?P<number>{NUMBER})[ \t]*(?P<unit>{UNIT_PATTERN}){UNIT_END}",
+              "measure", _unit, flags=0, accept=physical_quantity)
+        apply(rf"{LEFT}(?P<number>{NUMBER})[ \t]*(?P<unit>{UNKNOWN_UNIT_PATTERN})(?!\w)",
+              "measure", _unit, flags=0, accept=physical_quantity)
         apply(r"\b(?P<n>\d{1,4})\.(?=\s*(?:plass|gang|etasje|kapittel|ledd|punktum)\b)",
               "ordinal", lambda m: ordinal(int(m["n"])) + (" " if text[m.end():m.end() + 1].isalpha() else ""))
         apply(r"\b(?P<label>bokstav)[ \t]+(?P<letter>[a-zæøå])(?!\w)", "legal",
               lambda m: m["label"] + " " + letter(m["letter"]))
-        apply(r"(?<!\w)(?:m[23²³]|cm[23²³])(?!\w)", "measure", lambda m: UNITS[m[0].lower()][0])
+        apply(r"(?<!\w)(?:m[23²³]|cm[23²³])(?!\w)", "measure", lambda m: parse_unit(m[0]).singular, flags=0)
         apply(r"\b(?P<prefix>år(?:et)?\s+)(?P<year>\d{4})\b", "year",
               lambda m: m["prefix"] + year(int(m["year"])))
 

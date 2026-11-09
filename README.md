@@ -91,6 +91,20 @@ assert normalizer.normalize("API og NRK") == "a pe i og enn err kå"
 
 This argument replaces the dictionary rather than merging with its defaults.
 
+Channel readings have their own dictionary, independent of general acronyms:
+
+```python
+normalizer = NorwegianNormalizer(channels={"Min Radio 7": "min radio sju"})
+assert normalizer.normalize("MinRadio7") == "min radio sju"
+
+# Disable broadcast-name interpretation, e.g. for chemistry text containing P4.
+normalizer = NorwegianNormalizer(channels={})
+```
+
+`channels=...` also replaces its defaults. The default channel dictionary accepts
+optional spaces and case variants, such as `NRK1`/`NRK 1`, `TV2`/`TV 2`, and
+`NRKP1 +`. These aliases do not change unit-symbol case rules.
+
 ## VoxCPM2 integration
 
 Use the already loaded fine-tune or LoRA model from your existing inference code:
@@ -128,7 +142,7 @@ claimed cannot be rewritten by a later rule. Invalid recognized forms also
 claim their spans, so a failed date or amount is not partly converted by the
 generic number rules.
 
-Structured forms take precedence: protected URLs/identifiers, explicit versions,
+Structured forms take precedence: protected URLs/identifiers, channel names, explicit versions,
 legal citations and labeled phones, clocks and contextual ratios, dates, then
 fractions, quantities/ranges, ordinals/list markers, dictionaries, and finally
 bare numbers. For example, `§2-1` retains its chapter/section structure while
@@ -148,6 +162,9 @@ The code is split into:
 - `nb_tn/numbers.py`: cardinal, ordinal and year readings.
 - `nb_tn/readings.py`: fraction, version, letter, Roman numeral and digit readings.
 - `nb_tn/legal.py`: chapter/section paths, lists, ranges and subdivisions.
+- `nb_tn/units.py`: case-sensitive SI prefixes, unit names, powers, compound
+  units, and detection of symbol-shaped unsupported expressions.
+- `nb_tn/channels.py`: explicit Norwegian broadcasting names and historical aliases.
 - `nb_tn/voxcpm.py`: optional adapter for an already loaded model.
 - `nb_tn/__main__.py`: CLI and strict-mode exit behavior.
 
@@ -174,6 +191,12 @@ policy. Do not silently discard unsupported numbers or symbols.
 | `km/t`, `m/s`, `km`, `cm`, `mm`, `m`, `m²`, `m³` | Expanded measures, including attached `5km` |
 | `m2`, `m3`, `cm2`, `cm3` | Equivalent to the corresponding superscript forms; attached `75m2` also works |
 | `kg`, `g`, `mg`, `µg`, `ml`, `dl`, `l`, `min`, `sek`, `°C`, `stk.` | Selected measures and singular/plural forms |
+| `W`, `kW`, `MW`, `mW`, `J`, `kWh`, `MWh` | Power and energy, including `kilowattime`/`kilowattimer` |
+| `V`, `mA`, `Ω`, `MΩ`, `nF`, `S`, `MHz`, `hPa` | Electrical quantities, frequency and pressure |
+| `K`, `°F`, `ha`, `daa`, `Bq`, `mSv`, `lx`, `mol` | More temperature, area, activity, dose, light and amount units |
+| `m/s²`, `m/s2`, `m/s^2`, `kg/m³`, `N·m`, `s⁻¹` | Compound units, products and powers |
+| `NRK1`, `TV2`, `TVNorge`, `NRK P1+`, `NRK mP3` | Explicit channel-name readings before generic identifier detection |
+| `NRK P3 Musikk`, `NRK P13`, `P4`, `P5 Hits`, `P12 Hitmix` | Current and historical names; no automatic rebranding |
 | `§ 2`, `§§ 3–5` | `paragraf to`, `paragrafene tre til fem` |
 | `§2-1`, `§2.1`, `§2-1a`, `§2(1)(b)` | Compound sections, suffixes, tolerated dots, parenthesized ledd/bokstav notation |
 | `§§ 3-4 til 3-7`, `§§ 2-1 og 2-2` | Preserve chapter/section structure inside compound lists and ranges |
@@ -198,6 +221,60 @@ seven or more digits are nevertheless flagged**, because they may be phone or
 other identifiers. Explicit supported amount/measure contexts can use the larger
 range. A plain four-digit integer uses the cardinal reading unless it occurs in
 a recognized date or is introduced by `år`/`året`.
+
+## Physical quantities and broadcast names
+
+Unit symbols are **case-sensitive**. For example:
+
+| Input | Output |
+| --- | --- |
+| `5 MW` | `fem megawatt` |
+| `5 mW` | `fem milliwatt` |
+| `2 S` | `to siemens` |
+| `2 s` | `to sekunder` |
+| `12 kWh` | `tolv kilowattimer` |
+| `100 MHz` | `hundre megahertz` |
+| `9,81 m/s²` | `ni komma åtte en meter per sekund i kvadrat` |
+| `5 kg/m³` | `fem kilo per kubikkmeter` |
+
+The parser resolves an exact unit or an SI prefix plus a unit, then reads
+products (`·`, `⋅`, `∙`, `*`, `×`), division (`/`), and powers. Powers can be written
+with superscripts, caret notation, or the `m2`/`m3` aliases. Absolute powers 1–9
+are supported; negative powers become denominator readings. Square/cubic length
+units use `kvadrat-`/`kubikk-`; other squared units use `i kvadrat`. No values are
+converted, rounded, or rescaled. The familiar existing `kg` -> `kilo` and
+`km/t` -> `kilometer i timen` readings are retained.
+
+`l` and `L` both mean liter; `µ`, `μ` and ASCII `u` are accepted micro-prefix
+aliases, and `Ω` is accepted as an ohm-sign alias for `Ω`. Incorrect casing such
+as `mhz` or `mw` is **flagged**, not guessed as MHz/MW/mW. The existing lowercase
+`°c` input alias is retained explicitly. In ordinary spaced text, `1 dag` means
+`en dag`; the parser does not mistake the Norwegian day noun for dekagram.
+
+Unsupported symbol-shaped quantity expressions are retained as whole spans
+with review issues, including `5 XYZ`, `5 mhz`, `5 m//s`, and `5 W/(m²·K)`. The
+detector considers known symbols with wrong casing, uppercase/mixed-case tokens,
+attached unit-like strings, and explicit unit operators. It does not label every
+ordinary count noun as a unit: `5 personer` becomes `fem personer`. Consequently,
+an unknown separated lowercase word such as `5 frobnitz` is not guaranteed to
+be flagged. Uppercase prose can conversely trigger conservative review.
+Parenthesized unit groups and implicit products such as `kg m-3` are not yet
+parsed; use explicit forms such as `kg/m3` for supported compound readings.
+
+Broadcast names are a finite dictionary, matched longest-first. `NRK P1+` is
+read as `enn err kå pe en pluss`, rather than matching `P1` and losing `+`.
+Names include the common NRK TV/radio forms, TV 2 and several named services,
+TVNorge, TV3, and the P4-group names through P12 Hitmix. Plain natural-word names
+such as `Radio Norge` already pass through unchanged. This is not a complete
+catalog of Norwegian, local, international or discontinued channels.
+
+Historical names retain their historical reading: `NRK P13` is still
+`enn err kå pe tretten`, while `NRK P3 Musikk` is `enn err kå pe tre musikk`.
+The dictionary does not assert that a service is currently broadcasting, nor
+substitute new names into old text. Channel readings are curated application
+choices, not broadcaster-certified phonetic transcriptions. Names such as
+bare `P4` may also mean something else in scientific text; use `channels={}` or
+a domain-specific dictionary where necessary.
 
 ## Review and limitations
 
@@ -272,8 +349,8 @@ CLI behavior, and a mocked VoxCPM adapter. They do not measure perceptual audio
 quality or establish corpus-wide normalization accuracy.
 
 Other limitations include English decimal-point conventions, unknown acronym
-pronunciations, currencies other than the supported NOK forms, arbitrary unit
-notations, pronunciation changes across Norwegian dialects, and normalization
+pronunciations, currencies other than the supported NOK forms, scientific
+notation and arbitrary unit algebra, pronunciation changes across Norwegian dialects, and normalization
 across chunk boundaries. Match whole sentences or complete list items where
 possible; slicing a token between chunks can remove the context a rule needs.
 

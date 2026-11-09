@@ -66,3 +66,33 @@ Norwegian orthography rules. In particular, version `punkt`, release-label
 readings and the all-hyphens-as-ranges behavior are documented choices. These
 changes normalize speech input; they do not rewrite the user's source strings,
 and reports continue to refer to exact original character offsets.
+
+## Physical quantities and Norwegian broadcast names (2026-11-09)
+
+- [SSB: standardtegn i tabeller](https://www.ssb.no/eksempler/standardtegn-i-tabeller)
+  supplies Norwegian unit names and examples for area, volume, power, energy,
+  electric current and decimal prefixes.
+- [BIPM: SI Brochure](https://www.bipm.org/en/publications/si-brochure)
+  supplies the international SI symbols and prefix system. Matching preserves
+  the distinction between mega `M` and milli `m`, and between symbols such as
+  siemens `S` and second `s`. The package is a speech verbalizer, not a
+  standards-conformance checker or a dimensional-analysis/conversion library.
+- [NRK: radio help and information](https://info.nrk.no/radio/) and
+  [NRK's P3 Musikk announcement](https://kommunikasjon.ntb.no/pressemelding/18636532/nrk-p13-blir-til-nrk-p3-musikk?lang=no&publisherId=89389)
+  supply channel names and the historical P13/P3 Musikk distinction. The
+  dictionary preserves both names rather than rewriting historical text.
+- [Norges televisjon: kanaltilbud](https://ntv.no/)
+  supplies common NRK TV-name variants. Its listings may contain historical
+  radio branding; dictionary inclusion is not a claim of current availability.
+- [P4-gruppen: information about the radio channels](https://www.lydenavradio.no/p4/om/informasjon-om-p4-gruppen/artikkel/472039)
+  supplies the P4 through P12 channel brands and names.
+- [Medietilsynet: TV 2's public-service report](https://www.medietilsynet.no/fakta/rapporter/kringkasting/2026/allmennkringkastingsrapporten-tv-2/)
+  supports TV 2's Direkte and Nyheter naming. Other TV 2 service names and
+  familiar historical brands are retained as explicit pronunciation aliases.
+
+Channel letter/digit readings, accepted spacing aliases and longest-first name
+matching are application policies, not phonetic transcriptions verified by the
+broadcasters. The channel dictionary can be replaced or disabled independently
+of the acronym dictionary. Unit aliases and unsupported-unit review heuristics
+are documented in README.md. No third-party implementation or model weights
+were copied or added for these extensions.

@@ -74,7 +74,7 @@ class NormalizationTests(unittest.TestCase):
             "https://example.org/2026-05-01", "test123@example.no",
             "5 EUR", "$5", "±5",
             "kr 1,234", "1000000000000 kr",
-            "12:30:45", "2026-01-01T12:30:00Z", "1 000.000", "5 kr 50", "5 °F",
+            "12:30:45", "2026-01-01T12:30:00Z", "1 000.000", "5 kr 50",
         )
         for original in cases:
             with self.subTest(original=original):
