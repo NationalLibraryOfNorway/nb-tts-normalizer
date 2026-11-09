@@ -96,3 +96,32 @@ broadcasters. The channel dictionary can be replaced or disabled independently
 of the acronym dictionary. Unit aliases and unsupported-unit review heuristics
 are documented in README.md. No third-party implementation or model weights
 were copied or added for these extensions.
+
+## Foreign-currency amounts read in Norwegian (2026-11-09)
+
+- [ISO 4217 overview](https://www.iso.org/iso-4217-currency-codes.html) explains
+  currency codes and their relationship to minor units.
+- [SIX ISO 4217 List One](https://www.six-group.com/dam/download/financial-information/data-center/iso-currrency/lists/list-one.xml),
+  the maintenance agency's XML, was inspected with publication date 2026-09-17.
+  Its downloaded SHA-256 was
+  `33139b438657d1cee116ba737807ea71d19d6de4b90f799a09c56f0cc6a1b0ff`.
+  Of the twelve shipped codes, JPY has exponent 0, KWD 3, and the others 2.
+  Only the selected metadata is recorded in code; the XML is not vendored or
+  fetched at runtime. Future monetary changes may require a registry update.
+- [Norges Bank: currency names and codes](https://www.norges-bank.no/tema/Statistikk/Valutakurser/)
+  supplies Norwegian major-unit terminology. No exchange-rate data is used.
+- [Bokmålsordboka: cent](https://ordbokene.no/bm/8769),
+  [pund](https://ordbokene.no/bm/pund), and
+  [euro](https://ordbokene.no/bm%2Cnn/euro) establish relevant gender and forms.
+  The chosen readings use masculine `en cent`, neuter `ett britisk pund`, and
+  masculine `en euro` with the customary invariant plural in amounts.
+- [Central Bank of Kuwait: unit of currency](https://www.cbk.gov.kw/en/legislation-and-regulation/cbk-law/chapter-one)
+  specifies the relationship between the dinar and fils.
+
+Norwegian/US monetary separator settings, symbol defaults and country-qualified
+aliases, supported word forms, precision rejection rather than rounding, CHF/CNY
+decimal readings, and Norwegian-only output are explicit application choices.
+The ISO minor-unit metadata is a parsing policy, rather than a restriction on
+every possible quoted price. The implementation neither performs
+language identification nor claims to handle arbitrary code-switching. Existing
+NOK forms and strict review behavior are retained.

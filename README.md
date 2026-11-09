@@ -50,6 +50,11 @@ exits with status 2 if any review issue exists; it emits no plain text in that
 case, but still emits JSON when combined with `--json`. Without `--strict`,
 plain text output includes unchanged unresolved spans and warnings go to stderr.
 
+`--currency-locale {nb-NO,en-US}` selects the **input number format for monetary
+amounts only**. `--dollar-currency {USD,CAD,AUD}` and
+`--yen-currency {JPY,CNY}` provide explicit assumptions for bare `$` and `¥`.
+These options do not change the spoken language; see the currency section below.
+
 ## Python API
 
 ```python
@@ -143,7 +148,7 @@ claim their spans, so a failed date or amount is not partly converted by the
 generic number rules.
 
 Structured forms take precedence: protected URLs/identifiers, channel names, explicit versions,
-legal citations and labeled phones, clocks and contextual ratios, dates, then
+legal citations, currency amounts and labeled phones, clocks and contextual ratios, dates, then
 fractions, quantities/ranges, ordinals/list markers, dictionaries, and finally
 bare numbers. For example, `§2-1` retains its chapter/section structure while
 `10-15` is a range; `v1.2.26` is a version while `1.2.26` is a date.
@@ -165,6 +170,8 @@ The code is split into:
 - `nb_tn/units.py`: case-sensitive SI prefixes, unit names, powers, compound
   units, and detection of symbol-shaped unsupported expressions.
 - `nb_tn/channels.py`: explicit Norwegian broadcasting names and historical aliases.
+- `nb_tn/currencies.py`: supported currencies, minor-unit precision, explicit
+  monetary number locales and currency-symbol assumptions.
 - `nb_tn/voxcpm.py`: optional adapter for an already loaded model.
 - `nb_tn/__main__.py`: CLI and strict-mode exit behavior.
 
@@ -180,6 +187,8 @@ policy. Do not silently discard unsupported numbers or symbols.
 | `3,14` | `tre komma en fire`; fractional digits are read individually |
 | `kr 150,-`, `150 kr`, `NOK 1,01` | NOK amounts; the last includes `en krone og ett øre` |
 | `123.456,78 kr`, `5 kr 50 øre` | Dotted grouping in explicit NOK amounts; explicit kroner/øre fields |
+| `100 USD`, `EUR 12,50`, `GBP 1,01` | Norwegian foreign-currency readings and named minor units |
+| `USD 1,234.56`, `US$12.50` with `currency_locale="en-US"` | Explicit English-style monetary formatting; Norwegian speech |
 | `1. mai`, `01.05.2026`, `2026-05-01` | Ordinal day, Norwegian month name, optional year; calendar validity checked |
 | `1 . 5 . 2026`, `1/5/2026`, `1-5-26`, `1mai2026`, `1. sept. 2026` | Tolerate spacing, separators, abbreviated months, missing dots and two-digit years |
 | `01.05`, `1.–3. mai`, `1.-3.5.2026` | Day/month dates and date ranges; Norwegian ordering |
@@ -221,6 +230,98 @@ seven or more digits are nevertheless flagged**, because they may be phone or
 other identifiers. Explicit supported amount/measure contexts can use the larger
 range. A plain four-digit integer uses the cardinal reading unless it occurs in
 a recognized date or is introduced by `år`/`året`.
+
+## Foreign currencies, input locale and code-switching
+
+All supported amounts are verbalized **in Norwegian Bokmål**, regardless of
+the currency's country. Supported codes are **NOK, EUR, USD, GBP, SEK, DKK, CAD,
+AUD, CHF, CNY, JPY and KWD**. Prefix and suffix codes, supported symbols,
+selected written currency names, matching paired markers, negative amounts and
+numeric monetary ranges are recognized.
+
+| Input, default `currency_locale="nb-NO"` | Output |
+| --- | --- |
+| `100 USD` | `hundre amerikanske dollar` |
+| `EUR 12,50` | `tolv euro og femti cent` |
+| `GBP 1,01` | `ett britisk pund og en penny` |
+| `SEK 1,01` | `en svensk krone og ett øre` |
+| `CAD 10` | `ti kanadiske dollar` |
+| `JPY 100` | `hundre japanske yen` |
+| `KWD 1,005` | `en kuwaitisk dinar og fem fils` |
+| `CHF 1,20` | `en komma to null sveitsiske franc` |
+| `10–15 EUR` | `ti til femten euro` |
+
+Minor-unit precision is stored per currency: JPY uses 0 digits, KWD uses 3,
+and the other supported currencies use 2. There is **no rounding**. Amounts
+with excess precision are retained with a review issue; this is an application
+policy based on ISO 4217 minor units, not a claim that fractional market quotes
+can never exist. Named subunits include øre, cent, penny/pence and fils.
+For CHF and CNY, nonzero fractional amounts use a decimal reading of the major
+unit instead of selecting a language-specific subunit name. Zero minor units
+are omitted. All parsing uses integers and digit strings, not floating point.
+
+The input convention is **not inferred from the currency**. A US-dollar price
+inside Norwegian text may be written `USD 1.234,56`; its counterpart in US-style
+formatting is `USD 1,234.56`. Choose the convention explicitly:
+
+```python
+from nb_tn import NorwegianNormalizer
+
+norwegian = NorwegianNormalizer()  # currency_locale="nb-NO"
+assert norwegian.normalize("EUR 12,50") == "tolv euro og femti cent"
+
+us_format = NorwegianNormalizer(
+    currency_locale="en-US",
+    symbol_currencies={"$": "USD", "¥": "JPY"},
+)
+assert us_format.normalize("$12.50") == "tolv amerikanske dollar og femti cent"
+assert us_format.normalize("¥100") == "hundre japanske yen"
+```
+
+```bash
+nb-tn --strict --currency-locale en-US --dollar-currency USD '$12.50'
+nb-tn --json '100 USD og EUR 12,50'
+```
+
+The default accepts decimal comma, space/NBSP/narrow-NBSP grouping, and dotted
+three-digit grouping. `en-US` accepts decimal point and comma grouping (also
+space grouping). Mixed grouping characters, malformed groups, and excess
+fractional precision are flagged. For example, `USD 1,234` means 1234 dollars
+under `en-US`, but is flagged under `nb-NO` because three fractional digits
+exceed USD's configured precision. There is no automatic locale or language
+detection. The locale setting does not alter dates, units or other bare numbers.
+
+Symbol disambiguation is also explicit:
+
+- Bare `$` and `¥` are ambiguous and trigger review by default. Only these two
+  symbols can be configured through `symbol_currencies`; accepted mappings are
+  `$` -> USD/CAD/AUD and `¥` -> JPY/CNY. Settings are local to each normalizer.
+- `US$`, `C$`/`CA$`, `A$`/`AU$`, `JP¥` and `CN¥` are qualified aliases. Compatible
+  paired codes also disambiguate: `$10 CAD` uses CAD even if the configured
+  default for `$` is USD. Conflicting markers such as `€10 USD` are rejected.
+- The local shorthand `kr`/`kr.` continues to mean NOK; use SEK/DKK explicitly
+  for the other supported Nordic currencies. `€` means EUR and `£` means GBP
+  by application policy. Use explicit codes for other currencies using similar
+  names or symbols. Codes are uppercase; selected written-name aliases are
+  case-insensitive, including `euros`, `US dollars` and `British pounds`.
+- Unqualified `dollar`/`dollars` amounts are flagged. Bare `pounds` is not
+  treated as currency because it may denote weight. Unknown uppercase
+  three-letter markers and selected unsupported symbols are flagged; this is
+  not a complete recognizer for every currency name or script.
+
+**This is not multilingual normalization.** In an English sentence, only the
+recognized amount receives a Norwegian reading; the package does not rewrite
+the sentence into English spoken form or switch the voice's language. For text
+with mixed number conventions or languages, the application should separate
+spans with known locale/language metadata and call the appropriate normalizer
+for each. Source offsets in each report remain relative to that input span.
+An English normalizer and an English-capable TTS voice are separate requirements.
+
+Currency coverage is finite. Scientific-notation amounts, accounting-negative
+parentheses, unsupported codes and subunits, historical denomination changes,
+and arbitrary fractional amounts such as `1/2 EUR` are not comprehensively
+handled. Parentheses are not interpreted as a negative sign. Exchange rates and
+currency conversion are never used or inferred.
 
 ## Physical quantities and broadcast names
 
@@ -349,7 +450,7 @@ CLI behavior, and a mocked VoxCPM adapter. They do not measure perceptual audio
 quality or establish corpus-wide normalization accuracy.
 
 Other limitations include English decimal-point conventions, unknown acronym
-pronunciations, currencies other than the supported NOK forms, scientific
+pronunciations, currencies outside the listed codes and forms, scientific
 notation and arbitrary unit algebra, pronunciation changes across Norwegian dialects, and normalization
 across chunk boundaries. Match whole sentences or complete list items where
 possible; slicing a token between chunks can remove the context a rule needs.

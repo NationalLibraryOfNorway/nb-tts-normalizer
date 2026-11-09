@@ -10,13 +10,13 @@ from typing import Callable, Mapping
 from .numbers import cardinal, ordinal, year
 from .legal import LEGAL_PATTERN, legal_reference
 from .channels import CHANNELS, channel_pattern
+from .currencies import CurrencyPolicy
 from .units import UNKNOWN_UNIT_PATTERN, UNIT_END, UNIT_PATTERN, looks_like_unit, parse_unit
 from .readings import (DASH, DASH_CHARS, SIGN, SIGN_CHARS, VULGAR_FRACTIONS,
                        digits, fraction, letter, roman, version)
 
 INTEGER = r"(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+)"
 NUMBER = rf"{SIGN}?{INTEGER}(?:,\d+)?"
-AMOUNT = rf"{SIGN}?(?:\d{{1,3}}(?:\.\d{{3}})+|{INTEGER})(?:,\d+|,-)?"
 LEFT = r"(?<![\w.,+" + re.escape(DASH_CHARS) + r"])"
 RIGHT = r"(?!\w|[.,]\d)"
 MONTHS = ("januar", "februar", "mars", "april", "mai", "juni", "juli", "august",
@@ -81,21 +81,6 @@ def _number(text: str, *, neuter: bool = False) -> str:
     return result
 
 
-def _amount(match: re.Match) -> str:
-    raw = match["amount"]
-    integer, comma, fraction = raw.partition(",")
-    if fraction == "-":
-        fraction = ""
-    if len(fraction) > 2:
-        raise ValueError("NOK amount has more than two decimal places")
-    n = _integer(integer.replace(".", ""))
-    cents = int(fraction.ljust(2, "0")) if fraction else 0
-    result = cardinal(abs(n)) + (" krone" if abs(n) == 1 else " kroner")
-    if cents:
-        result += " og " + cardinal(cents, neuter=True) + " øre"
-    return ("minus " if raw[0] in SIGN_CHARS else "") + result
-
-
 def _unit(match: re.Match) -> str:
     raw = match["number"]
     unit = parse_unit(match["unit"])
@@ -145,12 +130,14 @@ class NorwegianNormalizer:
     """
 
     def __init__(self, *, acronyms: Mapping[str, str] | None = None,
-                 two_digit_year_pivot: int = 50, channels: Mapping[str, str] | None = None):
+                 two_digit_year_pivot: int = 50, channels: Mapping[str, str] | None = None,
+                 currency_locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None):
         if not 0 <= two_digit_year_pivot <= 100:
             raise ValueError("two_digit_year_pivot must be in 0..100")
         self.acronyms = dict(ACRONYMS if acronyms is None else acronyms)
         self.channels = dict(CHANNELS if channels is None else channels)
         self.two_digit_year_pivot = two_digit_year_pivot
+        self.currency_policy = CurrencyPolicy(currency_locale, symbol_currencies)
 
     def normalize(self, text: str) -> str:
         return self.analyze(text).text
@@ -227,6 +214,19 @@ class NorwegianNormalizer:
         apply(rf"\bv(?P<version>{version_body})(?!\w|\.\d)", "version",
               lambda m: version(m["version"], prefix=True))
         apply(LEGAL_PATTERN, "legal", legal_reference)
+
+        # Monetary markers must win over date/version-like amount punctuation.
+        # Keep explicit split NOK fields ahead of a possible "kr 50" substring.
+        def split_money(match: re.Match) -> str:
+            kr, ore = _integer(match["kr"]), int(match["ore"])
+            result = cardinal(abs(kr)) + (" krone" if abs(kr) == 1 else " kroner")
+            prefix = "minus " if match["kr"][0] in SIGN_CHARS else ""
+            return prefix + result + " og " + cardinal(ore, neuter=True) + " øre"
+        apply(rf"{LEFT}(?P<kr>{SIGN}?{INTEGER})\s*(?:kr\.?|kroner?)\s+(?P<ore>\d{{1,2}})\s*øre\b",
+              "currency", split_money)
+        protect(rf"{LEFT}{SIGN}?{INTEGER}\s*kr\.?\s+\d+\b", "split currency amount without an ore label")
+        for pattern, category in self.currency_policy.rules():
+            apply(pattern, category, self.currency_policy.render, flags=0)
 
         def telephone(match: re.Match) -> str:
             number = match["phone"]
@@ -373,25 +373,9 @@ class NorwegianNormalizer:
                 result += " " + parse_unit(unit).plural
             return result
         range_pattern = rf"(?P<first>{NUMBER})[ \t]*{DASH}[ \t]*(?P<last>{NUMBER})"
-        apply(rf"{LEFT}{range_pattern}\s*(?:kr\.?|NOK)\b", "currency_range",
-              lambda m: range_words(m) + " kroner")
-        apply(rf"(?<!\w)(?:kr\.?|NOK)\s*{range_pattern}{RIGHT}", "currency_range",
-              lambda m: range_words(m) + " kroner")
         apply(rf"{LEFT}{range_pattern}\s*%(?!\w)", "percentage_range",
               lambda m: range_words(m) + " prosent")
 
-        def split_money(match: re.Match) -> str:
-            kr, ore = _integer(match["kr"]), int(match["ore"])
-            result = cardinal(abs(kr)) + (" krone" if abs(kr) == 1 else " kroner")
-            prefix = "minus " if match["kr"][0] in SIGN_CHARS else ""
-            return prefix + result + " og " + cardinal(ore, neuter=True) + " øre"
-        apply(rf"{LEFT}(?P<kr>{SIGN}?{INTEGER})\s*(?:kr\.?|kroner?)\s+(?P<ore>\d{{1,2}})\s*øre\b",
-              "currency", split_money)
-        protect(rf"{LEFT}{SIGN}?{INTEGER}\s*kr\.?\s+\d+\b", "split currency amount without an ore label")
-        apply(rf"(?<!\w)(?:kr\.?|NOK)\s*(?P<amount>{AMOUNT}){RIGHT}", "currency", _amount)
-        apply(rf"{LEFT}(?P<amount>{AMOUNT})\s*(?:kr\.?|NOK)\b", "currency", _amount)
-        protect(rf"(?:[€$£]\s*{NUMBER}|{NUMBER}\s*(?:EUR|USD|GBP|€|\$|£))",
-                "currency other than NOK needs an explicit reading policy")
 
         apply(rf"{LEFT}{range_pattern}[ \t]*(?P<unit>{UNIT_PATTERN}){UNIT_END}",
               "range", range_words, flags=0, accept=physical_quantity)
