@@ -62,9 +62,9 @@ class UnitAndChannelTests(unittest.TestCase):
 
     def test_compound_units_and_powers(self):
         self.check_cases({
-            "9,81 m/s²": "ni komma åttien meter per sekund i kvadrat",
-            "9,81 m/s2": "ni komma åttien meter per sekund i kvadrat",
-            "9,81 m/s^2": "ni komma åttien meter per sekund i kvadrat",
+            "9,81 m/s²": "ni komma åttien meter per sekund i annen",
+            "9,81 m/s2": "ni komma åttien meter per sekund i annen",
+            "9,81 m/s^2": "ni komma åttien meter per sekund i annen",
             "5 kg/m³": "fem kilo per kubikkmeter",
             "5 g/cm3": "fem gram per kubikkcentimeter",
             "5 N·m": "fem newton meter",

@@ -32,5 +32,7 @@ jobs:
           nb-tn --strict --decimal-style digits '3,14 og 1,75'
           nb-tn --strict --language nn 'NOK 1,01 og 2 kWh, jf. §§ 1–3 den 8. mai 2026'
           nb-tn --strict --language nn --decimal-style digits '3,21'
+          nb-tn --strict '9,81m/s2'
+          nb-tn --strict --language nn '9,81m/s2'
           python -m nb_tn.provenance
           python -c "from importlib.metadata import files; assert any(str(p).endswith('LICENSES/Unicode-3.0.txt') for p in files('nb-tts-normalizer'))"

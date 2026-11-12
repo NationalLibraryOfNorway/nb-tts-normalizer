@@ -498,16 +498,48 @@ Unit symbols are **case-sensitive**. For example:
 | `2 s` | `to sekunder` |
 | `12 kWh` | `tolv kilowattimer` |
 | `100 MHz` | `hundre megahertz` |
-| `9,81 m/s²` | `ni komma åttien meter per sekund i kvadrat` |
+| `9,81 m/s²` | `ni komma åttien meter per sekund i annen` |
 | `5 kg/m³` | `fem kilo per kubikkmeter` |
 
 The parser resolves an exact unit or an SI prefix plus a unit, then reads
 products (`·`, `⋅`, `∙`, `*`, `×`), division (`/`), and powers. Powers can be written
 with superscripts, caret notation, or the `m2`/`m3` aliases. Absolute powers 1–9
 are supported; negative powers become denominator readings. Square/cubic length
-units use `kvadrat-`/`kubikk-`; other squared units use `i kvadrat`. No values are
+units use `kvadrat-`/`kubikk-`; other squared units use `i annen` in Bokmål and
+`i andre` in Nynorsk. Higher powers retain their ordinal `potens` readings.
+No values are
 converted, rounded, or rescaled. The familiar existing `kg` -> `kilo` and
 `km/t` -> `kilometer i timen` readings are retained.
+
+Since 0.6.1, the squared-unit default follows the unit wording in table 3 of
+the supplied [government draft, Forskrift om målenheter og måling](https://www.regjeringen.no/link/8610546553aa40b1acb67b6f3ed0385a.aspx?id=2221947):
+
+| Symbol | Bokmål | Nynorsk |
+| --- | --- | --- |
+| `m/s²`, `m/s2`, `m/s^2`, `m·s⁻²` | `meter per sekund i annen` | `meter per sekund i andre` |
+| `s²`, `s^2` | `sekund i annen` | `sekund i andre` |
+| `ms²` | `millisekund i annen` | `millisekund i andre` |
+| `A²` | `ampere i annen` | `ampere i andre` |
+| `m²`, `m2` | `kvadratmeter` | `kvadratmeter` |
+| `m³`, `m3` | `kubikkmeter` | `kubikkmeter` |
+
+Bokmål also permits `andre`; this project chooses `annen` for squared physical
+units to match the supplied table. Nynorsk uses `andre`, following
+[Språkrådet's ordinal guidance](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/tall-tid-dato/).
+This is a generated-reading policy, not a claim that mathematical `i kvadrat`
+is invalid. Already written-out phrases are left unchanged. Ordinary dates
+and other ordinal contexts still use `andre` in both languages.
+
+The draft itself varies between `kvadratmeter` for area and `meter i annen`
+in `m²/s`. We retain `kvadratmeter per sekund` for `m²/s`, and
+`kubikkmeter` for cubic length factors, to preserve the existing consistent
+geometric names across equivalent spellings and contexts. Applying the
+squared-unit reading to other unit factors is an explicit project extension.
+The PDF has a `[dato] 2007` placeholder and old SI definitions; it is cited for
+unit wording only, not as a statement of current law. Its apparent `Sr`, `Kat`
+and `Ohm` symbol spellings are not imported; case-sensitive SI symbols remain
+`sr`, `kat` and `Ω`. No definitions, conversions, parser scope, CLI names or
+default language are changed. See [SOURCES.md](SOURCES.md#physical-unit-power-readings-2026-11-12).
 
 `l` and `L` both mean liter; `µ`, `μ` and ASCII `u` are accepted micro-prefix
 aliases, and `Ω` is accepted as an ohm-sign alias for `Ω`. Incorrect casing such

@@ -2,6 +2,9 @@
 
 Names and prefixes follow SI/SSB references in SOURCES.md. A small set of
 non-SI/typographic aliases is explicit, rather than lowercasing symbols.
+Squared non-length units follow the supplied government draft's table 3:
+"i annen" (Bokmaal), adapted to "i andre" (Nynorsk); area/volume names stay
+kvadrat-/kubikkmeter. This is a reading policy, not an SI definition change.
 """
 
 from dataclasses import dataclass
@@ -145,7 +148,8 @@ def _atom(symbol: str, language: str = "nb") -> tuple[UnitReading, int]:
         if root == "m" and power in (2, 3):
             name = ("kvadrat" if power == 2 else "kubikk") + reading.singular
         else:
-            name = reading.singular + (" i kvadrat" if power == 2 else " i " + ordinal(power, language=language) + " potens")
+            name = reading.singular + (" i " + profile.squared_unit_ordinal if power == 2
+                                       else " i " + ordinal(power, language=language) + " potens")
         reading = UnitReading(name, name, reading.neuter, reading.gender)
     return reading, exponent
 

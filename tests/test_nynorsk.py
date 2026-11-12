@@ -144,7 +144,7 @@ class NynorskTests(unittest.TestCase):
             "2 MWh og 2 mAh": "to megawattimar og to milliamperetimar",
             "2 rad og 2 sr": "to radianar og to steradianar",
             "1 stk. og 2 stk.": "eitt stykk og to stykk.",
-            "9,81 m/s²": "ni komma åttiein meter per sekund i kvadrat",
+            "9,81 m/s²": "ni komma åttiein meter per sekund i andre",
             "3,05m3 og 75m2": "tre komma null fem kubikkmeter og syttifem kvadratmeter",
             "2 kg/m³": "to kilo per kubikkmeter", "2 s^7": "to sekund i sjuande potens",
             "1,21 min": "eitt komma tjueein minutt", "1–2 min": "eitt til to minutt",

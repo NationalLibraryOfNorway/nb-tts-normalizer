@@ -1,5 +1,32 @@
 # Sources and implementation provenance
 
+## Physical-unit power readings (2026-11-12)
+
+The user supplied [Forskrift om målenheter og måling, government-hosted PDF](https://www.regjeringen.no/link/8610546553aa40b1acb67b6f3ed0385a.aspx?id=2221947).
+The 76-page document was inspected through the web interface. Table 3 on printed
+p. 4 names acceleration with `sekund i annen`, while naming area/volume
+`kvadratmeter`/`kubikkmeter`. It also uses `meter i annen` in `m²/s`.
+The first page contains a `[dato] 2007` placeholder and the definitions predate
+the SI revision: this is a historical draft used as wording evidence, not
+asserted to be current legislation. Apparent symbol-case/typesetting errors
+in other tables are not adopted. Direct byte retrieval returned HTTP 403;
+no PDF content hash, immutable snapshot or bundled document is claimed.
+
+[Språkrådet: Tall, tid og dato, «Andre» og «annen»](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/tall-tid-dato/)
+states that Bokmål permits both ordinal forms and Nynorsk uses `andre`.
+The profile therefore selects `i annen` for squared non-length unit factors
+in Bokmål and `i andre` in Nynorsk. This does not change ordinary ordinal
+readings for dates or legal subdivisions.
+
+Extending that reading from seconds to other squared unit factors, retaining
+`per` rather than `pr.`, retaining `kvadrat-`/`kubikk-` for length factors
+(including `kvadratmeter per sekund` for `m²/s`), preserving higher ordinal
+`potens` readings, and leaving already spelled-out phrases untouched are
+explicit application choices. No new unit symbols or obsolete SI definitions
+are imported. The change is first-party rendering code, not copied government
+implementation; source references and updated artifact digests are recorded
+in the shipped provenance manifest. CLI naming and Bokmål default are unchanged.
+
 ## Nynorsk support (2026-11-12)
 
 The Nynorsk extension and shared-renderer refactor are first-party implementations

@@ -21,6 +21,15 @@ class ProvenanceTests(unittest.TestCase):
         with patch("nb_tn.provenance.urllib.request.urlopen", side_effect=AssertionError("network forbidden")):
             self.assertEqual(verify_provenance(), [])
 
+    def test_unit_power_policy_has_both_document_and_language_sources(self):
+        manifest = load_manifest()
+        for name in ("profiles.py", "units.py"):
+            self.assertTrue({"government-unit-draft", "sprakradet-ordinals"}.issubset(
+                manifest["artifacts"][name]["sources"]))
+        reference = manifest["sources"]["government-unit-draft"]
+        self.assertIn("[dato] 2007", reference["role"])
+        self.assertNotIn("sha256", reference)  # No bytes were retrieved for hashing.
+
     def test_artifact_changes_are_detected_not_silently_refreshed(self):
         original = load_manifest()
         changed = deepcopy(original)

@@ -51,7 +51,7 @@ class DecimalStyleTests(unittest.TestCase):
 
     def test_structured_decimal_readings(self):
         self.check_cases({
-            "9,81m/s2": "ni komma åttien meter per sekund i kvadrat",
+            "9,81m/s2": "ni komma åttien meter per sekund i annen",
             "1,75 min": "ett komma syttifem minutter",
             "3,14–3,75 kg": "tre komma fjorten til tre komma syttifem kilo",
             "3,14—3,75": "tre komma fjorten til tre komma syttifem",
@@ -67,7 +67,7 @@ class DecimalStyleTests(unittest.TestCase):
             "3,10": "tre komma en null", "3,05": "tre komma null fem",
             "3,00": "tre komma null null", "−0,75": "minus null komma sju fem",
             "3,14159": "tre komma en fire en fem ni",
-            "9,81m/s2": "ni komma åtte en meter per sekund i kvadrat",
+            "9,81m/s2": "ni komma åtte en meter per sekund i annen",
             "1,75 min": "ett komma sju fem minutter",
             "3,14–3,75 kg": "tre komma en fire til tre komma sju fem kilo",
             "3,14–3,75": "tre komma en fire til tre komma sju fem",

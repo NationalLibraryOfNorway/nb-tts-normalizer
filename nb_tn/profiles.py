@@ -21,6 +21,7 @@ class LanguageProfile:
     billion_plural: str
     fraction_plural: str
     paragraphs: str
+    squared_unit_ordinal: str
     abbreviations: Mapping[str, str]
     unit_forms: Mapping[str, tuple[str, str, str]]
     ratio_labels: str
@@ -47,7 +48,7 @@ _RATIO_LABELS = (r"forhold(?:et)?|blandingsforhold(?:et)?|målestokk(?:en)?|"
 _ORDINAL_CUES = r"plass|gang|etasje|kapittel|ledd|punktum"
 
 NB = LanguageProfile(
-    "nb", _ONES, _ORDINALS, "ende", "millioner", "milliarder", "deler", "paragrafene",
+    "nb", _ONES, _ORDINALS, "ende", "millioner", "milliarder", "deler", "paragrafene", "annen",
     MappingProxyType(_ABBREVIATIONS), MappingProxyType({}), _RATIO_LABELS, _ORDINAL_CUES,
 )
 NN = LanguageProfile(
@@ -57,7 +58,7 @@ NN = LanguageProfile(
      "femtande", "sekstande", "syttande", "attande", "nittande", "tjuande",
      "tjueførste", "tjueandre", "tjuetredje", "tjuefjerde", "tjuefemte", "tjuesjette",
      "tjuesjuande", "tjueåttande", "tjueniande", "trettiande", "trettiførste"),
-    "ande", "millionar", "milliardar", "delar", "paragrafane",
+    "ande", "millionar", "milliardar", "delar", "paragrafane", "andre",
     MappingProxyType({
         **_ABBREVIATIONS, "t.d.": "til dømes", "m.a.": "mellom anna",
         "osb.": "og så bortetter", "d.e.": "det er",

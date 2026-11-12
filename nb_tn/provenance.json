@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Nynorsk support and shared-renderer refactor introduced in 0.6.0; historical investigation remains documented in SOURCES.md.",
+  "scope": "Nynorsk support and shared-renderer refactor introduced in 0.6.0; physical-unit power reading correction in 0.6.1; historical investigation remains documented in SOURCES.md.",
   "implementation_credit": "National Library of Norway, Språkmodeller, with OpenAI Codex assistance.",
   "limitations": "Hashes verify inspected bytes and artifact identity, not authorship, linguistic correctness, native-speaker review, acoustic performance or continued upstream availability. Mutable reference-only pages are not immutable snapshots.",
   "sources": {
@@ -65,11 +65,23 @@
       "url": "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/blob/main/SOURCES.md#nynorsk-support-2026-11-12",
       "accessed": "2026-11-12",
       "role": "Variant selection, gender propagation, natural decimal speech, context aliases, proper-name preservation, spellings and scope; not an external normative source."
+    },
+    "government-unit-draft": {
+      "title": "Forskrift om målenheter og måling: government-hosted historical draft",
+      "url": "https://www.regjeringen.no/link/8610546553aa40b1acb67b6f3ed0385a.aspx?id=2221947",
+      "accessed": "2026-11-12",
+      "role": "Table 3, printed page 4: acceleration uses sekund i annen; area and volume use kvadratmeter/kubikkmeter. Inspected through web PDF text. First page has [dato] 2007; historical wording evidence only, not current law or SI definitions. Direct byte retrieval returned HTTP 403; no immutable snapshot or content hash claimed."
+    },
+    "sprakradet-ordinals": {
+      "title": "Språkrådet: Tall, tid og dato, Andre og annen",
+      "url": "https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/tall-tid-dato/",
+      "accessed": "2026-11-12",
+      "role": "Bokmål permits both ordinal andre and annen; Nynorsk uses andre. Project selects i annen for squared non-length units in Bokmål and i andre in Nynorsk; ordinary ordinal readings and geometric names stay unchanged. Mutable reference-only page."
     }
   },
   "artifacts": {
     "profiles.py": {
-      "sha256": "baa7760e213c35c132a56931b95b8a7ad6b5ff39acb125d6b56ee88d8a0b976a",
+      "sha256": "aa68a2386658ca14f1535e985d9ec2569a5640654905ac2b63579123a8414ef9",
       "origin": "First-party profile with a small manually selected/adapted Unicode CLDR metadata subset.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -78,7 +90,9 @@
         "nn-dictionary",
         "cldr-nn-49",
         "cldr-license-49",
-        "project-policy"
+        "project-policy",
+        "government-unit-draft",
+        "sprakradet-ordinals"
       ]
     },
     "numbers.py": {
@@ -104,7 +118,7 @@
       ]
     },
     "units.py": {
-      "sha256": "5ecc972c8bf0113049c70200e17e551afb02d3f9a3e98527cb6e19c05fe13941",
+      "sha256": "def1dbc9bf0eff00a39fec0e3869e80c420194f9a2f4c75b25d5460fd7e2fcdc",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -112,7 +126,9 @@
         "nn-dictionary",
         "cldr-nn-49",
         "cldr-license-49",
-        "project-policy"
+        "project-policy",
+        "government-unit-draft",
+        "sprakradet-ordinals"
       ]
     },
     "currencies.py": {
