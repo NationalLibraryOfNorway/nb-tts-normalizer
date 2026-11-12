@@ -28,3 +28,5 @@ jobs:
         run: |
           nb-tn --strict 'v1.2.3 og 75 m2, 5 MW og NRK P1+'
           nb-tn --strict --currency-locale en-US '$12.50 og ¥100'
+          nb-tn --strict '3,14 og 1,75'
+          nb-tn --strict --decimal-style digits '3,14 og 1,75'

@@ -28,7 +28,7 @@ class NormalizationTests(unittest.TestCase):
             "10–15 %": "ti til femten prosent",
             "10–15 kr": "ti til femten kroner",
             "kr 10–15": "ti til femten kroner",
-            "3,14": "tre komma en fire",
+            "3,14": "tre komma fjorten",
             "-0,05": "minus null komma null fem",
             "10 000": "ti tusen",
             "1. mai": "første mai",
@@ -55,7 +55,7 @@ class NormalizationTests(unittest.TestCase):
             "jf. § 2, §§ 3–5.": "jamfør paragraf to, paragrafene tre til fem.",
             "1. plass og 2. ledd": "første plass og andre ledd",
             "f.eks. NAV, NRK og USA": "for eksempel nav, enn err kå og u ess a",
-            "Hei! 150? Ja; 3,14.": "Hei! hundre og femti? Ja; tre komma en fire.",
+            "Hei! 150? Ja; 3,14.": "Hei! hundre og femti? Ja; tre komma fjorten.",
             "«osv.»": "«og så videre.»",
         }
         for original, expected in cases.items():

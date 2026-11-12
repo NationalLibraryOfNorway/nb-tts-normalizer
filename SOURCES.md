@@ -1,5 +1,18 @@
 # Sources and implementation provenance
 
+## Decimal speech policy (2026-11-12)
+
+[Matematikksenteret: Desimaltall som par av hele tall](https://www.matematikksenteret.no/nn/node/6558)
+describes whole-number fractional readings in everyday speech, including 3,14
+and 1,83, but recommends digit-by-digit readings for teaching place value.
+The default groups exactly two fractional digits representing 10..99; leading
+zeros and other lengths stay digit-by-digit. The configurable `digits` mode
+reads every fractional digit separately. This boundary and its consistent use
+across quantities, ranges and decimal-style currency amounts are application
+choices, not a claim of one mandatory spoken Norwegian decimal standard.
+
+## Initial implementation sources
+
 The following repositories were inspected on 2026-11-08, without downloading
 model weights:
 

@@ -7,7 +7,7 @@ from datetime import date
 import re
 from typing import Callable, Mapping
 
-from .numbers import cardinal, ordinal, year
+from .numbers import cardinal, decimal_fraction, ordinal, year
 from .legal import LEGAL_PATTERN, legal_reference
 from .channels import CHANNELS, channel_pattern
 from .currencies import CurrencyPolicy
@@ -71,21 +71,21 @@ def _integer(text: str) -> int:
     return int(re.sub(r"[ \u00a0\u202f]", "", text))
 
 
-def _number(text: str, *, neuter: bool = False) -> str:
+def _number(text: str, *, neuter: bool = False, decimal_style: str = "natural") -> str:
     integer, comma, fraction = text.partition(",")
     result = cardinal(_integer(integer), neuter=neuter)
     if text[0] in SIGN_CHARS and _integer(integer) == 0:
         result = "minus " + result
     if comma:
-        result += " komma " + " ".join(cardinal(int(d)) for d in fraction)
+        result += " komma " + decimal_fraction(fraction, style=decimal_style)
     return result
 
 
-def _unit(match: re.Match) -> str:
+def _unit(match: re.Match, *, decimal_style: str = "natural") -> str:
     raw = match["number"]
     unit = parse_unit(match["unit"])
     singular = _integer(raw.split(",")[0]) in (-1, 1) and "," not in raw
-    return _number(raw, neuter=unit.neuter) + " " + (unit.singular if singular else unit.plural)
+    return _number(raw, neuter=unit.neuter, decimal_style=decimal_style) + " " + (unit.singular if singular else unit.plural)
 
 
 def _clock(match: re.Match) -> str:
@@ -131,13 +131,15 @@ class NorwegianNormalizer:
 
     def __init__(self, *, acronyms: Mapping[str, str] | None = None,
                  two_digit_year_pivot: int = 50, channels: Mapping[str, str] | None = None,
-                 currency_locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None):
+                 currency_locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None,
+                 decimal_style: str = "natural"):
         if not 0 <= two_digit_year_pivot <= 100:
             raise ValueError("two_digit_year_pivot must be in 0..100")
         self.acronyms = dict(ACRONYMS if acronyms is None else acronyms)
         self.channels = dict(CHANNELS if channels is None else channels)
         self.two_digit_year_pivot = two_digit_year_pivot
-        self.currency_policy = CurrencyPolicy(currency_locale, symbol_currencies)
+        self.currency_policy = CurrencyPolicy(currency_locale, symbol_currencies, decimal_style=decimal_style)
+        self.decimal_style = decimal_style
 
     def normalize(self, text: str) -> str:
         return self.analyze(text).text
@@ -146,6 +148,12 @@ class NorwegianNormalizer:
         occupied: list[tuple[int, int]] = []
         changes: list[Replacement] = []
         issues: list[Issue] = []
+
+        def number(raw: str) -> str:
+            return _number(raw, decimal_style=self.decimal_style)
+
+        def unit_words(match: re.Match) -> str:
+            return _unit(match, decimal_style=self.decimal_style)
 
         def apply(pattern: str, category: str, convert: Callable[[re.Match], str],
                   *, flags: int = re.IGNORECASE,
@@ -258,7 +266,7 @@ class NorwegianNormalizer:
               "time", _clock)
 
         def ratio(match: re.Match) -> str:
-            return (match.groupdict().get("label") or "") + _number(match["first"]) + " til " + _number(match["last"])
+            return (match.groupdict().get("label") or "") + number(match["first"]) + " til " + number(match["last"])
         ratio_body = rf"(?P<first>{NUMBER})[ \t]*[:∶][ \t]*(?P<last>{NUMBER})"
         apply(rf"\b(?P<label>(?:forhold(?:et)?|blandingsforhold(?:et)?|målestokk(?:en)?|"
               rf"sideforhold(?:et)?|format(?:et)?|skjermformat(?:et)?)(?:[ \t]+(?:er|på))?[ \t]*:?[ \t]*)"
@@ -367,7 +375,7 @@ class NorwegianNormalizer:
 
         def range_words(match: re.Match) -> str:
             first, last = match["first"], match["last"]
-            result = _number(first) + " til " + _number(last)
+            result = number(first) + " til " + number(last)
             unit = match.groupdict().get("unit")
             if unit:
                 result += " " + parse_unit(unit).plural
@@ -382,13 +390,13 @@ class NorwegianNormalizer:
         apply(rf"{LEFT}{range_pattern}{RIGHT}", "range", range_words)
         protect(rf"(?<!\w)\d+(?:{DASH}\d+){{2,}}\b", "ambiguous multi-part hyphenated identifier")
         apply(rf"{LEFT}(?P<number>{NUMBER})\s*%(?!\w)", "percentage",
-              lambda m: _number(m["number"]) + " prosent")
+              lambda m: number(m["number"]) + " prosent")
         apply(rf"{LEFT}(?P<number>{NUMBER})\s*‰(?!\w)", "percentage",
-              lambda m: _number(m["number"]) + " promille")
+              lambda m: number(m["number"]) + " promille")
         apply(rf"{LEFT}(?P<number>{NUMBER})[ \t]*(?P<unit>{UNIT_PATTERN}){UNIT_END}",
-              "measure", _unit, flags=0, accept=physical_quantity)
+              "measure", unit_words, flags=0, accept=physical_quantity)
         apply(rf"{LEFT}(?P<number>{NUMBER})[ \t]*(?P<unit>{UNKNOWN_UNIT_PATTERN})(?!\w)",
-              "measure", _unit, flags=0, accept=physical_quantity)
+              "measure", unit_words, flags=0, accept=physical_quantity)
         apply(r"\b(?P<n>\d{1,4})\.(?=\s*(?:plass|gang|etasje|kapittel|ledd|punktum)\b)",
               "ordinal", lambda m: ordinal(int(m["n"])) + (" " if text[m.end():m.end() + 1].isalpha() else ""))
         apply(r"\b(?P<label>bokstav)[ \t]+(?P<letter>[a-zæøå])(?!\w)", "legal",
@@ -426,7 +434,7 @@ class NorwegianNormalizer:
                 raise ValueError("large bare number may be an identifier; provide context")
             if re.match(r"0\d", raw.lstrip(SIGN_CHARS)):
                 raise ValueError("leading-zero number needs a digit-reading policy")
-            return _number(raw)
+            return number(raw)
         apply(rf"{LEFT}{NUMBER}{RIGHT}", "number", generic)
 
         # Make any remaining numeric/symbol tokens visible to callers, rather

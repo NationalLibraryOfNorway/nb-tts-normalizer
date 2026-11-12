@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import re
 from typing import Mapping
 
-from .numbers import cardinal
+from .numbers import DECIMAL_STYLES, cardinal, decimal_fraction
 from .readings import DASH, DASH_CHARS, SIGN, SIGN_CHARS
 
 
@@ -70,10 +70,14 @@ class Amount:
 
 
 class CurrencyPolicy:
-    def __init__(self, locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None):
+    def __init__(self, locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None,
+                 *, decimal_style: str = "natural"):
         if locale not in ("nb-NO", "en-US"):
             raise ValueError("currency_locale must be nb-NO or en-US")
+        if decimal_style not in DECIMAL_STYLES:
+            raise ValueError("decimal_style must be natural or digits")
         self.locale = locale
+        self.decimal_style = decimal_style
         self.symbols = dict(SYMBOL_DEFAULTS)
         for symbol, code in (symbol_currencies or {}).items():
             if symbol not in ("$", "¥") or code is not None and code not in SYMBOL_FAMILIES[symbol]:
@@ -158,7 +162,7 @@ class CurrencyPolicy:
         major = currency.singular if amount.whole == 1 else currency.plural
         words = cardinal(amount.whole, neuter=currency.neuter)
         if amount.minor and currency.minor_singular is None:
-            words += " komma " + " ".join(cardinal(int(d)) for d in amount.fraction)
+            words += " komma " + decimal_fraction(amount.fraction, style=self.decimal_style)
             major = currency.plural
         words += " " + major
         if amount.minor and currency.minor_singular is not None:

@@ -62,9 +62,9 @@ class UnitAndChannelTests(unittest.TestCase):
 
     def test_compound_units_and_powers(self):
         self.check_cases({
-            "9,81 m/s²": "ni komma åtte en meter per sekund i kvadrat",
-            "9,81 m/s2": "ni komma åtte en meter per sekund i kvadrat",
-            "9,81 m/s^2": "ni komma åtte en meter per sekund i kvadrat",
+            "9,81 m/s²": "ni komma åttien meter per sekund i kvadrat",
+            "9,81 m/s2": "ni komma åttien meter per sekund i kvadrat",
+            "9,81 m/s^2": "ni komma åttien meter per sekund i kvadrat",
             "5 kg/m³": "fem kilo per kubikkmeter",
             "5 g/cm3": "fem gram per kubikkcentimeter",
             "5 N·m": "fem newton meter",
@@ -94,7 +94,7 @@ class UnitAndChannelTests(unittest.TestCase):
             "5 personer og 3 hus": "fem personer og tre hus",
             "5 Oslo-bilder": "fem Oslo-bilder",
             "1 dag og 2 dager": "en dag og to dager",
-            "3,14 kg og 2 m²": "tre komma en fire kilo og to kvadratmeter",
+            "3,14 kg og 2 m²": "tre komma fjorten kilo og to kvadratmeter",
         })
 
     def test_broadcast_names_and_aliases(self):

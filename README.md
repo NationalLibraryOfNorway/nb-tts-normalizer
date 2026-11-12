@@ -50,6 +50,11 @@ exits with status 2 if any review issue exists; it emits no plain text in that
 case, but still emits JSON when combined with `--json`. Without `--strict`,
 plain text output includes unchanged unresolved spans and warnings go to stderr.
 
+`--decimal-style {natural,digits}` selects decimal speech. The default `natural`
+reads `3,14` as `tre komma fjorten`; `digits` gives `tre komma en fire` for
+technical or instructional use. See the decimal policy below for leading zeros
+and longer fractional parts.
+
 `--currency-locale {nb-NO,en-US}` selects the **input number format for monetary
 amounts only**. `--dollar-currency {USD,CAD,AUD}` and
 `--yen-currency {JPY,CNY}` override the defaults `$` -> USD and `¥` -> CNY.
@@ -62,7 +67,7 @@ from nb_tn import NorwegianNormalizer
 
 normalizer = NorwegianNormalizer()
 report = normalizer.analyze("kr 150,-, 3,14 og 1. mai")
-assert report.text == "hundre og femti kroner, tre komma en fire og første mai"
+assert report.text == "hundre og femti kroner, tre komma fjorten og første mai"
 assert not report.needs_review
 ```
 
@@ -110,6 +115,44 @@ normalizer = NorwegianNormalizer(channels={})
 optional spaces and case variants, such as `NRK1`/`NRK 1`, `TV2`/`TV 2`, and
 `NRKP1 +`. These aliases do not change unit-symbol case rules.
 
+## Decimal reading policy
+
+Since version 0.5.0, `decimal_style="natural"` is the default. Exactly two
+fractional digits are read as a whole number when they represent 10..99.
+Leading zeros are never dropped, and other lengths remain digit-by-digit:
+
+| Input | Default `natural` | Technical `digits` |
+| --- | --- | --- |
+| `3,14` | `tre komma fjorten` | `tre komma en fire` |
+| `1,75` | `en komma syttifem` | `en komma sju fem` |
+| `3,10` | `tre komma ti` | `tre komma en null` |
+| `3,05` | `tre komma null fem` | `tre komma null fem` |
+| `3,00` | `tre komma null null` | `tre komma null null` |
+| `3,14159` | `tre komma en fire en fem ni` | `tre komma en fire en fem ni` |
+
+```python
+technical = NorwegianNormalizer(decimal_style="digits")
+assert technical.normalize("3,14 kg") == "tre komma en fire kilo"
+```
+
+```bash
+nb-tn --strict '3,14 kg'
+nb-tn --strict --decimal-style digits '3,14 kg'
+```
+
+The policy applies consistently to bare decimals, quantities, percentages,
+promille, ratio endpoints, ranges, and CHF/CNY amounts spoken as decimals.
+It does not change named currency subunits (`EUR 12,50` still uses `femti cent`),
+software-version components, phone digits, dates, clocks, or written fractions.
+It is independent of `currency_locale`, which controls monetary input parsing.
+No digits are rounded or silently truncated.
+
+This everyday-speech default is an application choice, not a universal rule
+for Norwegian mathematics. [Matematikksenteret](https://www.matematikksenteret.no/nn/node/6558)
+describes whole-number fractional readings in everyday speech while recommending
+digit-by-digit readings for mathematical teaching. Select `digits` when that
+distinction matters; older releases used digit-by-digit decimal speech by default.
+
 ## VoxCPM2 integration
 
 Use the already loaded fine-tune or LoRA model from your existing inference code:
@@ -132,6 +175,10 @@ model. `strict=False` explicitly permits synthesis of unchanged unresolved spans
 For custom review flows, call `analyze()` first, review the report, and call the
 model yourself. `.normalize(text)` is a convenient string-only method; it does
 not block or expose review issues.
+
+The adapter uses natural decimal speech by default. For technical speech, pass
+`normalizer=NorwegianNormalizer(decimal_style="digits")` to
+`generate_norwegian(...)` (import `NorwegianNormalizer` from `nb_tn`).
 
 Prompt transcripts are passed through as supplied; they should describe what
 is actually spoken in the reference recording. Pass only speech text to this
@@ -184,7 +231,7 @@ policy. Do not silently discard unsupported numbers or symbols.
 | Written form | Spoken form / policy |
 | --- | --- |
 | `150`, `-5`, `10 000` | `hundre og femti`, `minus fem`, `ti tusen` |
-| `3,14` | `tre komma en fire`; fractional digits are read individually |
+| `3,14`, `1,75` | `tre komma fjorten`, `en komma syttifem`; configurable decimal reading |
 | `kr 150,-`, `150 kr`, `NOK 1,01` | NOK amounts; the last includes `en krone og ett øre` |
 | `123.456,78 kr`, `5 kr 50 øre` | Dotted grouping in explicit NOK amounts; explicit kroner/øre fields |
 | `100 USD`, `EUR 12,50`, `GBP 1,01` | Norwegian foreign-currency readings and named minor units |
@@ -250,7 +297,7 @@ numeric monetary ranges are recognized.
 | `CAD 10` | `ti kanadiske dollar` |
 | `JPY 100` | `hundre japanske yen` |
 | `KWD 1,005` | `en kuwaitisk dinar og fem fils` |
-| `CHF 1,20` | `en komma to null sveitsiske franc` |
+| `CHF 1,20` | `en komma tjue sveitsiske franc` |
 | `10–15 EUR` | `ti til femten euro` |
 
 Minor-unit precision is stored per currency: JPY uses 0 digits, KWD uses 3,
@@ -342,7 +389,7 @@ Unit symbols are **case-sensitive**. For example:
 | `2 s` | `to sekunder` |
 | `12 kWh` | `tolv kilowattimer` |
 | `100 MHz` | `hundre megahertz` |
-| `9,81 m/s²` | `ni komma åtte en meter per sekund i kvadrat` |
+| `9,81 m/s²` | `ni komma åttien meter per sekund i kvadrat` |
 | `5 kg/m³` | `fem kilo per kubikkmeter` |
 
 The parser resolves an exact unit or an SI prefix plus a unit, then reads

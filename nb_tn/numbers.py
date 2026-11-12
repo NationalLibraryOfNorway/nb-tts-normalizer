@@ -15,6 +15,7 @@ ORDINALS = ("", "første", "andre", "tredje", "fjerde", "femte", "sjette", "sjue
             "tjuefemte", "tjuesjette", "tjuesjuende", "tjueåttende", "tjueniende",
             "trettiende", "trettiførste")
 MAX_INTEGER = 10**12 - 1
+DECIMAL_STYLES = ("natural", "digits")
 
 
 def cardinal(number: int, *, neuter: bool = False) -> str:
@@ -43,6 +44,19 @@ def cardinal(number: int, *, neuter: bool = False) -> str:
                 return prefix
             return prefix + (" og " if rest < 100 else " ") + cardinal(rest, neuter=neuter)
     raise AssertionError("unreachable")
+
+
+def decimal_fraction(fraction: str, *, style: str = "natural") -> str:
+    """Read fractional digits without losing leading zeros or precision.
+
+    Everyday speech groups exactly two digits (10..99); technical speech
+    always reads each digit. Neither policy changes the supplied digits.
+    """
+    if style not in DECIMAL_STYLES:
+        raise ValueError("decimal_style must be natural or digits")
+    if style == "natural" and len(fraction) == 2 and int(fraction[0]) != 0:
+        return cardinal(int(fraction))
+    return " ".join(cardinal(int(d)) for d in fraction)
 
 
 def ordinal(number: int) -> str:

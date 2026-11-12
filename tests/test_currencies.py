@@ -53,8 +53,8 @@ class CurrencyTests(unittest.TestCase):
             "AUD 0,50": "null australske dollar og femti cent",
             "KWD 1,005": "en kuwaitisk dinar og fem fils",
             "KWD 1,5": "en kuwaitisk dinar og fem hundre fils",
-            "CHF 1,20": "en komma to null sveitsiske franc",
-            "CNY 2,50": "to komma fem null kinesiske yuan",
+            "CHF 1,20": "en komma tjue sveitsiske franc",
+            "CNY 2,50": "to komma femti kinesiske yuan",
             "EUR -0,01": "minus null euro og en cent",
             "-€1,25": "minus en euro og tjuefem cent",
             "€-1,25": "minus en euro og tjuefem cent",
@@ -72,7 +72,7 @@ class CurrencyTests(unittest.TestCase):
             "150,- kr": "hundre og femti kroner",
             "5 kr 50 øre": "fem kroner og femti øre",
             "NOK 1,01": "en krone og ett øre",
-            "kr 150,-, 3,14 og 1. mai": "hundre og femti kroner, tre komma en fire og første mai",
+            "kr 150,-, 3,14 og 1. mai": "hundre og femti kroner, tre komma fjorten og første mai",
         })
 
     def test_explicit_english_currency_number_format_is_still_spoken_norwegian(self):
@@ -83,7 +83,7 @@ class CurrencyTests(unittest.TestCase):
             "EUR 1.05": "en euro og fem cent",
             "EUR .50": "null euro og femti cent",
             "The price is USD 12.50.": "The price is tolv amerikanske dollar og femti cent.",
-            "3,14 kg": "tre komma en fire kilo",
+            "3,14 kg": "tre komma fjorten kilo",
         }, currency_locale="en-US")
 
     def test_ambiguous_and_qualified_symbols(self):
@@ -101,7 +101,7 @@ class CurrencyTests(unittest.TestCase):
 
     def test_bare_symbols_default_to_us_dollars_and_chinese_yuan(self):
         cases = {"$5": "fem amerikanske dollar", "$12,50": "tolv amerikanske dollar og femti cent",
-                 "¥100": "hundre kinesiske yuan", "¥1,25": "en komma to fem kinesiske yuan"}
+                 "¥100": "hundre kinesiske yuan", "¥1,25": "en komma tjuefem kinesiske yuan"}
         self.check_cases(cases)
         self.check_cases(cases, symbol_currencies={})
         # A partial override must preserve the other default and not mutate
