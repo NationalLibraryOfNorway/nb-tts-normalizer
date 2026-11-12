@@ -12,3 +12,17 @@ implementations; the upstream converter is not bundled.
 Språkrådet's language guidance informed reading conventions. The optional
 VoxCPM adapter targets the interface supplied by OpenBMB's VoxCPM project.
 See README.md and SOURCES.md for acknowledgements and source references.
+
+Nynorsk support was implemented for this repository with OpenAI Codex assistance.
+Nynorsksenteret's grammar and Sprakradet/University of Bergen's Nynorskordboka
+informed number forms and grammatical facts. No third-party normalizer code,
+grammar document, dictionary database, or model is bundled for this extension.
+
+Selected Nynorsk unit-name metadata was adapted from Unicode CLDR 49,
+revision 96e54b273d2da4ec6fbad350ba19ff23fa24a588, common/main/nn.xml.
+Copyright 2001-2026 Unicode, Inc. Used under Unicode License V3 (Unicode-3.0);
+see LICENSES/Unicode-3.0.txt. The upstream CLDR XML is not bundled.
+
+The shipped nb_tn/provenance.json identifies references, derivation, source
+content hashes where recorded, and implementation artifact hashes for this
+extension. Acknowledgements do not imply source-owner review or endorsement.

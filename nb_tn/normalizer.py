@@ -1,19 +1,22 @@
-"""Bokmaal orthography -> spoken text, with auditable original-text spans."""
+"""Bokmaal/Nynorsk orthography -> spoken text, with original-text spans."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from functools import partial
 import re
 from typing import Callable, Mapping
 
 from .numbers import cardinal, decimal_fraction, ordinal, year
+from . import numbers as number_readings, readings as spoken_readings, units as unit_readings
+from .profiles import NB, get_profile
 from .legal import LEGAL_PATTERN, legal_reference
-from .channels import CHANNELS, channel_pattern
+from .channels import channel_pattern, channel_readings
 from .currencies import CurrencyPolicy
 from .units import UNKNOWN_UNIT_PATTERN, UNIT_END, UNIT_PATTERN, looks_like_unit, parse_unit
 from .readings import (DASH, DASH_CHARS, SIGN, SIGN_CHARS, VULGAR_FRACTIONS,
-                       digits, fraction, letter, roman, version)
+                       letter, roman)
 
 INTEGER = r"(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+)"
 NUMBER = rf"{SIGN}?{INTEGER}(?:,\d+)?"
@@ -26,12 +29,7 @@ MONTH_ALIASES.update(dict(zip(("jan", "feb", "mar", "apr", "jun", "jul", "aug", 
                                   (1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12))))
 MONTH_ALIASES["sept"] = 9
 MONTH_PATTERN = "(?:" + "|".join(sorted(MONTH_ALIASES, key=len, reverse=True)) + ")"
-ABBREVIATIONS = {
-    "f.eks.": "for eksempel", "bl.a.": "blant annet", "jf.": "jamfør",
-    "ca.": "cirka", "osv.": "og så videre", "m.m.": "med mer",
-    "tlf.": "telefon", "nr.": "nummer", "kap.": "kapittel", "pkt.": "punkt",
-    "art.": "artikkel", "bokst.": "bokstav", "pga.": "på grunn av", "dvs.": "det vil si",
-}
+ABBREVIATIONS = NB.abbreviations
 ACRONYMS = {"NAV": "nav", "NRK": "enn err kå", "USA": "u ess a",
             "EU": "e u", "EØS": "e ø ess"}
 
@@ -71,38 +69,39 @@ def _integer(text: str) -> int:
     return int(re.sub(r"[ \u00a0\u202f]", "", text))
 
 
-def _number(text: str, *, neuter: bool = False, decimal_style: str = "natural") -> str:
+def _number(text: str, *, neuter: bool = False, gender: str | None = None,
+            decimal_style: str = "natural", language: str = "nb") -> str:
     integer, comma, fraction = text.partition(",")
-    result = cardinal(_integer(integer), neuter=neuter)
+    result = cardinal(_integer(integer), neuter=neuter, gender=gender, language=language)
     if text[0] in SIGN_CHARS and _integer(integer) == 0:
         result = "minus " + result
     if comma:
-        result += " komma " + decimal_fraction(fraction, style=decimal_style)
+        result += " komma " + decimal_fraction(fraction, style=decimal_style, language=language)
     return result
 
 
-def _unit(match: re.Match, *, decimal_style: str = "natural") -> str:
+def _unit(match: re.Match, *, decimal_style: str = "natural", language: str = "nb") -> str:
     raw = match["number"]
-    unit = parse_unit(match["unit"])
+    unit = parse_unit(match["unit"], language=language)
     singular = _integer(raw.split(",")[0]) in (-1, 1) and "," not in raw
-    return _number(raw, neuter=unit.neuter, decimal_style=decimal_style) + " " + (unit.singular if singular else unit.plural)
+    return _number(raw, gender=unit.number_gender, decimal_style=decimal_style, language=language) + " " + (unit.singular if singular else unit.plural)
 
 
-def _clock(match: re.Match) -> str:
+def _clock(match: re.Match, *, language: str = "nb") -> str:
     hour, minute = int(match["hour"]), int(match["minute"] or 0)
     if hour > 24 or minute > 59 or hour == 24 and minute != 0:
         raise ValueError("invalid clock time")
-    words = cardinal(hour)
+    words = cardinal(hour, language=language)
     if minute:
-        words += (" null " if minute < 10 else " ") + cardinal(minute)
+        words += (" null " if minute < 10 else " ") + cardinal(minute, language=language)
     return ("klokka " if match.groupdict().get("prefix") else "") + words
 
 
-def _date(match: re.Match, pivot: int = 50) -> str:
-    return _date_fields(match.groupdict(), pivot)
+def _date(match: re.Match, pivot: int = 50, *, language: str = "nb") -> str:
+    return _date_fields(match.groupdict(), pivot, language=language)
 
 
-def _date_fields(groups: Mapping[str, str], pivot: int = 50) -> str:
+def _date_fields(groups: Mapping[str, str], pivot: int = 50, *, language: str = "nb") -> str:
     day = int(groups["day"])
     month = groups["month"]
     month = MONTH_ALIASES[month.lower()] if not month.isdigit() else int(month)
@@ -111,19 +110,21 @@ def _date_fields(groups: Mapping[str, str], pivot: int = 50) -> str:
     if raw_year and len(raw_year) == 2:
         y += 2000 if y < pivot else 1900
     date(y if y is not None else 2000, month, day)  # Allows 29 February without a year.
-    return ordinal(day) + " " + MONTHS[month - 1] + (" " + year(y) if y else "")
+    return ordinal(day, language=language) + " " + MONTHS[month - 1] + (" " + year(y, language=language) if y else "")
 
 
-def _numeric_date(text: str, pivot: int) -> str:
+def _numeric_date(text: str, pivot: int, *, language: str = "nb") -> str:
     parts = re.split(rf"[ \t]*(?:[./]+|{DASH})[ \t]*", text.strip())
     if len(parts) != 3:
         raise ValueError("unsupported numeric date")
     y, month, day = parts if len(parts[0]) == 4 else (parts[2], parts[1], parts[0])
-    return _date_fields({"year": y, "month": month, "day": day}, pivot)
+    return _date_fields({"year": y, "month": month, "day": day}, pivot, language=language)
 
 
 class NorwegianNormalizer:
-    """Conservative Bokmaal normalizer. Offsets are Python Unicode code points.
+    """Conservative Norwegian normalizer; language='nb' (default) or 'nn'.
+
+    Offsets are Python Unicode code points. Unclaimed prose is never translated.
 
     Unresolved spans are retained exactly and returned as issues. This is not a
     semantic confidence score: absence of issues does not certify pronunciation.
@@ -132,13 +133,16 @@ class NorwegianNormalizer:
     def __init__(self, *, acronyms: Mapping[str, str] | None = None,
                  two_digit_year_pivot: int = 50, channels: Mapping[str, str] | None = None,
                  currency_locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None,
-                 decimal_style: str = "natural"):
+                 decimal_style: str = "natural", language: str = "nb"):
+        self.profile = get_profile(language)
+        self.language = self.profile.code
         if not 0 <= two_digit_year_pivot <= 100:
             raise ValueError("two_digit_year_pivot must be in 0..100")
         self.acronyms = dict(ACRONYMS if acronyms is None else acronyms)
-        self.channels = dict(CHANNELS if channels is None else channels)
+        self.channels = dict(channel_readings(language) if channels is None else channels)
         self.two_digit_year_pivot = two_digit_year_pivot
-        self.currency_policy = CurrencyPolicy(currency_locale, symbol_currencies, decimal_style=decimal_style)
+        self.currency_policy = CurrencyPolicy(currency_locale, symbol_currencies,
+                                              decimal_style=decimal_style, language=language)
         self.decimal_style = decimal_style
 
     def normalize(self, text: str) -> str:
@@ -149,11 +153,24 @@ class NorwegianNormalizer:
         changes: list[Replacement] = []
         issues: list[Issue] = []
 
-        def number(raw: str) -> str:
-            return _number(raw, decimal_style=self.decimal_style)
+        # Bind renderers per call/instance; never mutate a process-global language.
+        cardinal = partial(number_readings.cardinal, language=self.language)
+        ordinal = partial(number_readings.ordinal, language=self.language)
+        year = partial(number_readings.year, language=self.language)
+        digits = partial(spoken_readings.digits, language=self.language)
+        fraction = partial(spoken_readings.fraction, language=self.language)
+        version = partial(spoken_readings.version, language=self.language)
+        parse_unit = partial(unit_readings.parse_unit, language=self.language)
+        date_fields = partial(_date_fields, language=self.language)
+        date_words = partial(_date, language=self.language)
+        numeric_date_words = partial(_numeric_date, language=self.language)
+        clock_words = partial(_clock, language=self.language)
+
+        def number(raw: str, *, gender: str | None = None) -> str:
+            return _number(raw, decimal_style=self.decimal_style, language=self.language, gender=gender)
 
         def unit_words(match: re.Match) -> str:
-            return _unit(match, decimal_style=self.decimal_style)
+            return _unit(match, decimal_style=self.decimal_style, language=self.language)
 
         def apply(pattern: str, category: str, convert: Callable[[re.Match], str],
                   *, flags: int = re.IGNORECASE,
@@ -221,13 +238,14 @@ class NorwegianNormalizer:
               + version(m["version"]))
         apply(rf"\bv(?P<version>{version_body})(?!\w|\.\d)", "version",
               lambda m: version(m["version"], prefix=True))
-        apply(LEGAL_PATTERN, "legal", legal_reference)
+        apply(LEGAL_PATTERN, "legal", partial(legal_reference, language=self.language))
 
         # Monetary markers must win over date/version-like amount punctuation.
         # Keep explicit split NOK fields ahead of a possible "kr 50" substring.
         def split_money(match: re.Match) -> str:
             kr, ore = _integer(match["kr"]), int(match["ore"])
-            result = cardinal(abs(kr)) + (" krone" if abs(kr) == 1 else " kroner")
+            gender = self.currency_policy.currencies["NOK"].number_gender
+            result = cardinal(abs(kr), gender=gender) + (" krone" if abs(kr) == 1 else " kroner")
             prefix = "minus " if match["kr"][0] in SIGN_CHARS else ""
             return prefix + result + " og " + cardinal(ore, neuter=True) + " øre"
         apply(rf"{LEFT}(?P<kr>{SIGN}?{INTEGER})\s*(?:kr\.?|kroner?)\s+(?P<ore>\d{{1,2}})\s*øre\b",
@@ -259,36 +277,35 @@ class NorwegianNormalizer:
               rf"(?P<first_hour>\d{{1,2}})(?(prefix)[.:]|:)(?P<first_minute>\d{{2}})[ \t]*{DASH}[ \t]*"
               r"(?P<last_hour>\d{1,2})(?(prefix)[.:]|:)(?P<last_minute>\d{2})\b", "time_range", clock_range)
         apply(r"\b(?P<prefix>kl\.|klokka|klokken)\s*(?P<hour>\d{1,2})[.:](?P<minute>\d{2})\b",
-              "time", _clock)
+              "time", clock_words)
         apply(r"\b(?P<prefix>kl\.|klokka|klokken)[ \t]*(?P<hour>\d{2})(?P<minute>\d{2})\b",
-              "time", _clock)
+              "time", clock_words)
         apply(r"\b(?P<prefix>kl\.|klokka|klokken)\s*(?P<hour>\d{1,2})\b(?P<minute>)",
-              "time", _clock)
+              "time", clock_words)
 
         def ratio(match: re.Match) -> str:
             return (match.groupdict().get("label") or "") + number(match["first"]) + " til " + number(match["last"])
         ratio_body = rf"(?P<first>{NUMBER})[ \t]*[:∶][ \t]*(?P<last>{NUMBER})"
-        apply(rf"\b(?P<label>(?:forhold(?:et)?|blandingsforhold(?:et)?|målestokk(?:en)?|"
-              rf"sideforhold(?:et)?|format(?:et)?|skjermformat(?:et)?)(?:[ \t]+(?:er|på))?[ \t]*:?[ \t]*)"
+        apply(rf"\b(?P<label>(?:{self.profile.ratio_labels})(?:[ \t]+(?:er|på))?[ \t]*:?[ \t]*)"
               rf"{ratio_body}{RIGHT}", "ratio", ratio)
         apply(rf"{LEFT}(?P<first>{NUMBER})(?:[ \t]+[:∶][ \t]*|[:∶][ \t]+)(?P<last>{NUMBER}){RIGHT}",
               "ratio", ratio)
         apply(rf"{LEFT}{ratio_body}(?P<suffix>{DASH}(?:forhold|format))\b", "ratio",
               lambda m: ratio(m) + m["suffix"])
-        apply(r"\b(?P<hour>\d{1,2}):(?P<minute>\d{2})\b", "time", _clock)
+        apply(r"\b(?P<hour>\d{1,2}):(?P<minute>\d{2})\b", "time", clock_words)
 
         pivot = self.two_digit_year_pivot
         sep = rf"[ \t]*(?:[./]+|{DASH})[ \t]*"
         numeric_date = rf"(?:\d{{4}}{sep}\d{{1,2}}{sep}\d{{1,2}}|\d{{1,2}}{sep}\d{{1,2}}{sep}(?:\d{{4}}|\d{{2}}))"
         apply(rf"\b(?P<first>{numeric_date})[ \t]*{DASH}[ \t]*(?P<last>{numeric_date})(?!\w)",
-              "date_range", lambda m: _numeric_date(m["first"], pivot) + " til " + _numeric_date(m["last"], pivot))
+              "date_range", lambda m: numeric_date_words(m["first"], pivot) + " til " + numeric_date_words(m["last"], pivot))
 
         def full_day_range(match: re.Match) -> str:
             fields = match.groupdict()
             first = {"day": fields["first_day"], "month": fields["first_month"], "year": fields.get("first_year")}
             last = {"day": fields["day"], "month": fields["month"], "year": fields.get("year")}
-            _date_fields({**first, "year": first["year"] or last["year"]}, pivot)
-            return _date_fields(first, pivot) + " til " + _date_fields(last, pivot)
+            date_fields({**first, "year": first["year"] or last["year"]}, pivot)
+            return date_fields(first, pivot) + " til " + date_fields(last, pivot)
         apply(rf"\b(?P<first_day>\d{{1,2}})[ \t]*\.+[ \t]*(?P<first_month>\d{{1,2}})\.?[ \t]*{DASH}[ \t]*"
               rf"(?P<day>\d{{1,2}})[ \t]*\.+[ \t]*(?P<month>\d{{1,2}})(?:{sep}(?P<year>\d{{4}}|\d{{2}}))?(?!\w)",
               "date_range", full_day_range)
@@ -299,31 +316,31 @@ class NorwegianNormalizer:
 
         def day_range(match: re.Match) -> str:
             fields = match.groupdict()
-            _date_fields({**fields, "day": fields["first"]}, pivot)
-            return ordinal(int(fields["first"])) + " til " + _date_fields(fields, pivot)
+            date_fields({**fields, "day": fields["first"]}, pivot)
+            return ordinal(int(fields["first"])) + " til " + date_fields(fields, pivot)
         apply(rf"\b(?P<first>\d{{1,2}})\.+[ \t]*{DASH}[ \t]*(?P<day>\d{{1,2}}){sep}"
               rf"(?P<month>\d{{1,2}})(?:{sep}(?P<year>\d{{4}}|\d{{2}}))?(?!\w)",
               "date_range", day_range)
-        apply(rf"\b{numeric_date}(?!\w)", "date", lambda m: _numeric_date(m[0], pivot))
+        apply(rf"\b{numeric_date}(?!\w)", "date", lambda m: numeric_date_words(m[0], pivot))
 
         apply(rf"\b(?P<first>\d{{1,2}})\.*[ \t]*{DASH}[ \t]*(?P<day>\d{{1,2}})\.*[ \t]*"
               rf"(?P<month>{MONTH_PATTERN})(?![a-zæøå])\.?(?:[ \t]*(?P<year>\d{{4}}|\d{{2}}))?\b",
               "date_range", day_range)
         apply(rf"\b(?P<day>\d{{1,2}})\.*[ \t]*(?P<month>{MONTH_PATTERN})(?![a-zæøå])"
-              r"\.?(?:[ \t]*(?P<year>\d{4}|\d{2})(?!\d))?", "date", lambda m: _date(m, pivot))
+              r"\.?(?:[ \t]*(?P<year>\d{4}|\d{2})(?!\d))?", "date", lambda m: date_words(m, pivot))
 
         # With no year, a slash is a fraction unless a date cue explicitly says otherwise.
         apply(r"\b(?P<label>(?:dato|datert|den|frist(?:en)?(?: er)?)[ \t]+)"
               r"(?P<day>\d{1,2})[ \t]*/[ \t]*(?P<month>\d{1,2})(?![\d/])",
-              "date", lambda m: m["label"] + _date(m, pivot))
+              "date", lambda m: m["label"] + date_words(m, pivot))
         apply(LEFT + r"(?P<day>\d{1,2})[ \t]*\.[ \t]*(?P<month>\d{1,2})(?!\d|\.\d)",
-              "date", lambda m: _date(m, pivot))
+              "date", lambda m: date_words(m, pivot))
         def compact_date(match: re.Match) -> str:
             raw = match["compact"]
             try:
-                words = _date_fields({"year": raw[:4], "month": raw[4:6], "day": raw[6:]}, pivot)
+                words = date_fields({"year": raw[:4], "month": raw[4:6], "day": raw[6:]}, pivot)
             except ValueError:
-                words = _date_fields({"year": raw[4:], "month": raw[2:4], "day": raw[:2]}, pivot)
+                words = date_fields({"year": raw[4:], "month": raw[2:4], "day": raw[:2]}, pivot)
             return match["label"] + words
         apply(r"\b(?P<label>(?:dato|datert)[ \t]+)(?P<compact>\d{8})(?!\d)", "date", compact_date)
 
@@ -347,22 +364,25 @@ class NorwegianNormalizer:
                 left = numerator_text.split()
                 whole = int(left[0]) if len(left) == 2 else None
                 numerator, denominator = int(left[-1]), int(denominator)
-            neuter = parse_unit(unit).neuter if unit is not None else False
-            return fraction(numerator, denominator, whole=whole, negative=negative, neuter=neuter)
+            if unit is not None and unit.lower() in ("kr", "nok"):
+                gender = self.currency_policy.currencies["NOK"].number_gender
+            elif unit is not None and unit not in ("%", "‰"):
+                gender = parse_unit(unit).number_gender
+            else:
+                gender = "m"
+            return fraction(numerator, denominator, whole=whole, negative=negative, gender=gender)
 
         def fractional_quantity(match: re.Match) -> str:
             unit = match["unit"]
             name = {"kr": "krone", "nok": "krone", "%": "prosent", "‰": "promille"}.get(unit.lower())
             if name is None:
                 name = parse_unit(unit).singular  # Sprakradet: singular after fractions.
-            physical = None if unit.lower() in ("kr", "nok", "%", "‰") else unit
-            return fraction_words(match["fraction"], unit=physical) + " " + name
+            return fraction_words(match["fraction"], unit=unit) + " " + name
         def fractional_range_quantity(match: re.Match) -> str:
             unit = match["unit"]
             name = {"kr": "krone", "nok": "krone", "%": "prosent", "‰": "promille"}.get(unit.lower())
             name = name if name is not None else parse_unit(unit).singular
-            physical = None if unit.lower() in ("kr", "nok", "%", "‰") else unit
-            return fraction_words(match["first"], unit=physical) + " til " + fraction_words(match["last"], unit=physical) + " " + name
+            return fraction_words(match["first"], unit=unit) + " til " + fraction_words(match["last"], unit=unit) + " " + name
         apply(rf"{LEFT}(?P<first>{fraction_body})[ \t]*{DASH}[ \t]*(?P<last>{fraction_body})"
               rf"[ \t]*(?P<unit>{UNIT_PATTERN}|kr|NOK|%|‰){UNIT_END}", "fraction_range", fractional_range_quantity,
               flags=0, accept=physical_quantity)
@@ -375,8 +395,9 @@ class NorwegianNormalizer:
 
         def range_words(match: re.Match) -> str:
             first, last = match["first"], match["last"]
-            result = number(first) + " til " + number(last)
             unit = match.groupdict().get("unit")
+            gender = parse_unit(unit).number_gender if unit and self.language == "nn" else None
+            result = number(first, gender=gender) + " til " + number(last, gender=gender)
             if unit:
                 result += " " + parse_unit(unit).plural
             return result
@@ -397,7 +418,7 @@ class NorwegianNormalizer:
               "measure", unit_words, flags=0, accept=physical_quantity)
         apply(rf"{LEFT}(?P<number>{NUMBER})[ \t]*(?P<unit>{UNKNOWN_UNIT_PATTERN})(?!\w)",
               "measure", unit_words, flags=0, accept=physical_quantity)
-        apply(r"\b(?P<n>\d{1,4})\.(?=\s*(?:plass|gang|etasje|kapittel|ledd|punktum)\b)",
+        apply(rf"\b(?P<n>\d{{1,4}})\.(?=\s*(?:{self.profile.ordinal_cues})\b)",
               "ordinal", lambda m: ordinal(int(m["n"])) + (" " if text[m.end():m.end() + 1].isalpha() else ""))
         apply(r"\b(?P<label>bokstav)[ \t]+(?P<letter>[a-zæøå])(?!\w)", "legal",
               lambda m: m["label"] + " " + letter(m["letter"]))
@@ -423,7 +444,7 @@ class NorwegianNormalizer:
               "enumeration", lambda m: m["indent"] + "punkt.", flags=re.M)
         protect(r"[+±]\s*\d+(?:[.,]\d+)?", "unsupported sign or uncertainty expression")
 
-        for abbreviation, spoken in ABBREVIATIONS.items():
+        for abbreviation, spoken in self.profile.abbreviations.items():
             apply(r"(?<!\w)" + re.escape(abbreviation) + r"(?!\w)", "abbreviation", lambda m, s=spoken: s)
         for acronym, spoken in self.acronyms.items():
             apply(r"(?<!\w)" + re.escape(acronym) + r"(?!\w)", "acronym", lambda m, s=spoken: s, flags=0)

@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nb-tts-normalizer"
-version = "0.5.0"
-description = "Conservative Bokmaal text normalization for Norwegian TTS"
+version = "0.6.0"
+description = "Conservative Bokmaal and Nynorsk text normalization for Norwegian TTS"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [{name = "National Library of Norway, Språkmodeller"}]
-keywords = ["norwegian", "bokmaal", "tts", "text-normalization"]
+keywords = ["norwegian", "bokmaal", "nynorsk", "tts", "text-normalization"]
 requires-python = ">=3.10"
 dependencies = []
 
@@ -22,3 +22,9 @@ nb-tn = "nb_tn.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["nb_tn*"]
+
+[tool.setuptools]
+license-files = ["LICENSE", "NOTICE", "LICENSES/*.txt"]
+
+[tool.setuptools.package-data]
+nb_tn = ["provenance.json"]

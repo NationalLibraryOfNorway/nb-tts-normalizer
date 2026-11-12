@@ -1,0 +1,41 @@
+from copy import deepcopy
+import unittest
+from unittest.mock import patch
+
+from nb_tn.provenance import load_manifest, verify_provenance
+
+
+class ProvenanceTests(unittest.TestCase):
+    def test_shipped_manifest_covers_changed_implementation(self):
+        manifest = load_manifest()
+        self.assertEqual(set(manifest["artifacts"]), {
+            "profiles.py", "numbers.py", "readings.py", "units.py", "currencies.py",
+            "legal.py", "channels.py", "normalizer.py", "__main__.py", "provenance.py",
+        })
+        self.assertEqual(verify_provenance(manifest), [])
+        self.assertEqual(manifest["sources"]["cldr-nn-49"]["revision"],
+                         "96e54b273d2da4ec6fbad350ba19ff23fa24a588")
+        self.assertEqual(manifest["sources"]["cldr-nn-49"]["license"], "Unicode-3.0")
+
+    def test_offline_audit_never_fetches_references(self):
+        with patch("nb_tn.provenance.urllib.request.urlopen", side_effect=AssertionError("network forbidden")):
+            self.assertEqual(verify_provenance(), [])
+
+    def test_artifact_changes_are_detected_not_silently_refreshed(self):
+        original = load_manifest()
+        changed = deepcopy(original)
+        changed["artifacts"]["profiles.py"]["sha256"] = "0" * 64
+        self.assertIn("artifact changed without provenance update: profiles.py", verify_provenance(changed))
+        self.assertEqual(changed["artifacts"]["profiles.py"]["sha256"], "0" * 64)
+        self.assertEqual(load_manifest(), original)
+
+    def test_missing_references_invalid_digests_and_paths_are_rejected(self):
+        changed = deepcopy(load_manifest())
+        changed["artifacts"]["profiles.py"]["sources"] = ["unrecorded-source"]
+        self.assertIn("incomplete artifact provenance: profiles.py", verify_provenance(changed))
+        changed["artifacts"]["../outside.py"] = changed["artifacts"]["profiles.py"]
+        self.assertIn("invalid package artifact path: ../outside.py", verify_provenance(changed))
+        changed["artifacts"]["profiles.py"]["sha256"] = "bad-hash"
+        self.assertIn("invalid artifact digest: profiles.py", verify_provenance(changed))
+        changed["schema_version"] = 999
+        self.assertIn("unsupported provenance schema", verify_provenance(changed))

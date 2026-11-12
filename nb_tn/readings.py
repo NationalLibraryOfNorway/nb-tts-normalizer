@@ -7,6 +7,7 @@ recorded in SOURCES.md. These helpers do not modify source text or offsets.
 import re
 
 from .numbers import cardinal
+from .profiles import get_profile
 
 # Unicode hyphens/dashes (Pd), plus soft hyphen and the mathematical minus sign.
 # They are interpreted as ranges only between numeric endpoints, after date,
@@ -31,25 +32,29 @@ def letter(text: str) -> str:
     return LETTERS[text.lower()]
 
 
-def digits(text: str) -> str:
-    return " ".join(cardinal(int(d)) for d in text if d.isdecimal())
+def digits(text: str, *, language: str = "nb") -> str:
+    get_profile(language)
+    return " ".join(cardinal(int(d), language=language) for d in text if d.isdecimal())
 
 
 def fraction(numerator: int, denominator: int, *, whole: int | None = None,
-             negative: bool = False, neuter: bool = False) -> str:
+             negative: bool = False, neuter: bool = False, gender: str | None = None,
+             language: str = "nb") -> str:
+    profile = get_profile(language)
+    gender = gender if gender is not None else "n" if neuter else "m"
     if denominator <= 0 or numerator < 0 or whole is not None and whole < 0:
         raise ValueError("fraction needs a nonnegative numerator and a positive denominator")
     if denominator == 2 and numerator == 1:
-        words = "ett halvt" if neuter else "en halv"
+        words = cardinal(1, gender=gender, language=language) + (" halvt" if gender == "n" else " halv")
     elif denominator == 1:
-        words = cardinal(numerator) + " over en"
+        words = cardinal(numerator, language=language) + " over " + cardinal(1, language=language)
     else:
         name = {2: "halv", 100: "hundre", 1000: "tusen"}.get(denominator)
         if name is None:
-            name = cardinal(denominator).replace(" ", "")
-        words = cardinal(numerator) + " " + name + ("del" if numerator == 1 else "deler")
+            name = cardinal(denominator, language=language).replace(" ", "")
+        words = cardinal(numerator, language=language) + " " + name + ("del" if numerator == 1 else profile.fraction_plural)
     if whole is not None:
-        words = cardinal(whole) + " og " + words
+        words = cardinal(whole, gender=gender if language == "nn" else "m", language=language) + " og " + words
     return ("minus " if negative else "") + words
 
 
@@ -61,15 +66,17 @@ def roman(text: str) -> int:
     return sum(-n if i + 1 < len(numbers) and n < numbers[i + 1] else n for i, n in enumerate(numbers))
 
 
-def version(text: str, *, prefix: bool = False) -> str:
+def version(text: str, *, prefix: bool = False, language: str = "nb") -> str:
     """Read components without collapsing version separators into decimals."""
+    get_profile(language)
     text = text.lstrip("vV")
     tokens = re.findall(r"\d+|[a-zA-Z]+|[.+-]", text)
     words = []
     names = {"alpha": "alfa", "beta": "beta", "rc": "err se", "build": "bygg"}
     for token in tokens:
         if token.isdecimal():
-            words.append(digits(token) if len(token) > 1 and token.startswith("0") else cardinal(int(token)))
+            words.append(digits(token, language=language) if len(token) > 1 and token.startswith("0")
+                         else cardinal(int(token), language=language))
         elif token == ".":
             words.append("punkt")
         elif token == "+":

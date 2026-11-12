@@ -1,15 +1,16 @@
-"""Foreign-currency amounts read in Bokmaal, with explicit input conventions.
+"""Foreign-currency amounts read in Bokmaal or Nynorsk, with explicit input conventions.
 
 No exchange rates, monetary conversion, floating-point arithmetic, rounding,
 language identification, or runtime currency-table downloads are used.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import re
 from typing import Mapping
 
 from .numbers import DECIMAL_STYLES, cardinal, decimal_fraction
 from .readings import DASH, DASH_CHARS, SIGN, SIGN_CHARS
+from .profiles import get_profile
 
 
 @dataclass(frozen=True)
@@ -21,6 +22,12 @@ class Currency:
     minor_singular: str | None = "cent"
     minor_plural: str | None = "cent"
     minor_neuter: bool = False
+    gender: str | None = None
+    minor_gender: str | None = None
+
+    @property
+    def number_gender(self) -> str:
+        return self.gender or ("n" if self.neuter else "m")
 
 
 CURRENCIES = {
@@ -48,13 +55,17 @@ WORDS = {"euro": "EUR", "euros": "EUR", "kroner": "NOK", "krone": "NOK",
          "svensk krone": "SEK", "svenske kroner": "SEK", "dansk krone": "DKK", "danske kroner": "DKK",
          "kanadisk dollar": "CAD", "kanadiske dollar": "CAD", "Canadian dollar": "CAD", "Canadian dollars": "CAD",
          "australsk dollar": "AUD", "australske dollar": "AUD", "Australian dollar": "AUD", "Australian dollars": "AUD"}
-_WORDS = {word.casefold(): code for word, code in WORDS.items()}
 _AMBIGUOUS_WORDS = {"dollar", "dollars"}
 _FIXED = {**QUALIFIED, **SYMBOL_DEFAULTS}
-_MARKER = ("(?:" + "|".join(re.escape(s) for s in sorted(_FIXED, key=len, reverse=True))
-           + "|(?i:" + "|".join(re.escape(s).replace(r"\ ", r"[ \t]+")
-                                for s in sorted((*WORDS, *_AMBIGUOUS_WORDS), key=len, reverse=True))
-           + r")|[A-Z]{3}|[₹₩₽₺₴₪₫₦₱₡₲₵₸₾₼₿฿])")
+
+
+def _marker(words: Mapping[str, str]) -> str:
+    return ("(?:" + "|".join(re.escape(s) for s in sorted(_FIXED, key=len, reverse=True))
+            + "|(?i:" + "|".join(re.escape(s).replace(r"\ ", r"[ \t]+")
+                                 for s in sorted((*words, *_AMBIGUOUS_WORDS), key=len, reverse=True))
+            + r")|[A-Z]{3}|[₹₩₽₺₴₪₫₦₱₡₲₵₸₾₼₿฿])")
+
+
 _LEFT = r"(?<![\w.,:/+" + re.escape(DASH_CHARS) + r"])"
 _END = r"(?!\w|[.,]\d)"
 _SPACE = r"[ \t\u00a0\u202f]*"
@@ -71,13 +82,27 @@ class Amount:
 
 class CurrencyPolicy:
     def __init__(self, locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None,
-                 *, decimal_style: str = "natural"):
+                 *, decimal_style: str = "natural", language: str = "nb"):
+        get_profile(language)
         if locale not in ("nb-NO", "en-US"):
             raise ValueError("currency_locale must be nb-NO or en-US")
         if decimal_style not in DECIMAL_STYLES:
             raise ValueError("decimal_style must be natural or digits")
         self.locale = locale
         self.decimal_style = decimal_style
+        self.language = language
+        self.currencies = dict(CURRENCIES)
+        words = dict(WORDS)
+        if language == "nn":
+            # Nynorskordboka: krone is feminine; CLDR 49: kuwaitiske dinarar.
+            # Other currency names/subunit conventions retain their shared forms.
+            for code in ("NOK", "SEK", "DKK"):
+                self.currencies[code] = replace(self.currencies[code], gender="f")
+            self.currencies["KWD"] = replace(self.currencies["KWD"], plural="kuwaitiske dinarar")
+            for code, currency in self.currencies.items():
+                words[currency.singular] = words[currency.plural] = code
+        self.words = {word.casefold(): code for word, code in words.items()}
+        self.marker = _marker(words)
         self.symbols = dict(SYMBOL_DEFAULTS)
         for symbol, code in (symbol_currencies or {}).items():
             if symbol not in ("$", "¥") or code is not None and code not in SYMBOL_FAMILIES[symbol]:
@@ -95,8 +120,8 @@ class CurrencyPolicy:
         word = re.sub(r"[ \t]+", " ", marker).casefold()
         if word in _AMBIGUOUS_WORDS:
             raise ValueError("unqualified dollar name needs an explicit currency code")
-        if word in _WORDS:
-            return _WORDS[word]
+        if word in self.words:
+            return self.words[word]
         if marker not in CURRENCIES:
             raise ValueError("unsupported currency marker or code: " + marker)
         return marker
@@ -158,16 +183,17 @@ class CurrencyPolicy:
         return Amount(int(integer), minor, fraction, negative)
 
     def amount_words(self, amount: Amount, code: str) -> str:
-        currency = CURRENCIES[code]
+        currency = self.currencies[code]
         major = currency.singular if amount.whole == 1 else currency.plural
-        words = cardinal(amount.whole, neuter=currency.neuter)
+        words = cardinal(amount.whole, gender=currency.number_gender, language=self.language)
         if amount.minor and currency.minor_singular is None:
-            words += " komma " + decimal_fraction(amount.fraction, style=self.decimal_style)
+            words += " komma " + decimal_fraction(amount.fraction, style=self.decimal_style, language=self.language)
             major = currency.plural
         words += " " + major
         if amount.minor and currency.minor_singular is not None:
             minor = currency.minor_singular if amount.minor == 1 else currency.minor_plural
-            words += " og " + cardinal(amount.minor, neuter=currency.minor_neuter) + " " + minor
+            words += " og " + cardinal(amount.minor, neuter=currency.minor_neuter,
+                                       gender=currency.minor_gender, language=self.language) + " " + minor
         return ("minus " if amount.negative else "") + words
 
     def render(self, match: re.Match) -> str:
@@ -184,19 +210,20 @@ class CurrencyPolicy:
         last = self.parse(groups["last"], code)
         if not first.minor and not last.minor:
             def number(a: Amount) -> str:
-                return ("minus " if a.negative else "") + cardinal(a.whole, neuter=CURRENCIES[code].neuter)
-            return number(first) + " til " + number(last) + " " + CURRENCIES[code].plural
+                return ("minus " if a.negative else "") + cardinal(a.whole,
+                        gender=self.currencies[code].number_gender, language=self.language)
+            return number(first) + " til " + number(last) + " " + self.currencies[code].plural
         return self.amount_words(first, code) + " til " + self.amount_words(last, code)
 
     def rules(self):
         first, last = rf"(?P<first>{_AMOUNT})", rf"(?P<last>{_AMOUNT})"
-        prefix, suffix = rf"(?P<prefix>{_MARKER})", rf"(?P<suffix>{_MARKER})"
+        prefix, suffix = rf"(?P<prefix>{self.marker})", rf"(?P<suffix>{self.marker})"
         boundary = r"(?!\w)"
         # Longer forms first, so ranges and paired markers own their full span.
         yield (_LEFT + first + _SPACE + suffix + boundary + _SPACE + DASH + _SPACE
-               + last + _SPACE + rf"(?P<suffix2>{_MARKER})" + boundary, "currency_range")
+               + last + _SPACE + rf"(?P<suffix2>{self.marker})" + boundary, "currency_range")
         yield (_LEFT + rf"(?P<sign>{SIGN})?" + prefix + _SPACE + first + _SPACE + DASH + _SPACE
-               + rf"(?:(?P<prefix2>{_MARKER}){_SPACE})?" + last
+               + rf"(?:(?P<prefix2>{self.marker}){_SPACE})?" + last
                + rf"(?:{_SPACE}{suffix}{boundary})?" + _END, "currency_range")
         yield (_LEFT + first + _SPACE + DASH + _SPACE + last + _SPACE + suffix + boundary, "currency_range")
         yield (_LEFT + rf"(?P<sign>{SIGN})?" + prefix + _SPACE + first

@@ -1,5 +1,78 @@
 # Sources and implementation provenance
 
+## Nynorsk support (2026-11-12)
+
+The Nynorsk extension and shared-renderer refactor are first-party implementations
+for this repository, written with OpenAI Codex assistance. No external normalizer
+code, dictionary database, grammar document or model was copied into the package.
+This is text normalization, not a Bokmål-to-Nynorsk translator or dialect engine.
+
+Linguistic references inspected:
+
+- [Nynorsksenteret: Nynorsk grammatikk, Ordklasser og setningar](https://nynorsksenteret.no/uploads/documents/Heile_grammatikken_1.pdf),
+  printed p. 36, supplies the cardinal/ordinal forms, including `sjuande`,
+  `trettande`, `tjuande`, `tjueein`, `hundrede` and `tusende`. The inspected PDF
+  is 1,940,417 bytes, SHA-256
+  `92e02fc19edb8c3163190885d7348745b5fa84e91af0f040365564a9d103522b`.
+  The document is a linguistic reference, not vendored code or data. The
+  arithmetic composition algorithm remains our own existing implementation.
+- [Språkrådet: forkortelser](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/forkortelser/)
+  supplies `t.d.` → `til dømes`, `m.a.` → `mellom anna`, `osb.` →
+  `og så bortetter`, `d.e.` → `det er`, `m.m.` → `med meir`, and shared
+  abbreviations. This mutable reference was read through the web interface;
+  no stable content hash or redistributed page snapshot is claimed.
+- **Nynorskordboka**, published by Språkrådet and the University of Bergen:
+  [krone](https://ordbokene.no/nn/krone) establishes feminine currency agreement;
+  [sekund](https://ordbokene.no/nn/sekund) supports the selected neuter time-unit
+  reading and invariant plural; [stykk](https://ordbokene.no/nn/stykk) is
+  uninflected; [del](https://ordbokene.no/nno/nn/11243) supports `delar`;
+  [paragraf](https://ordbokene.no/nn/paragraf) supplies the noun;
+  [halv](https://ordbokene.no/nn/halv) supports gendered half-quantity forms;
+  [hundrede](https://ordbokene.no/nn/hundrede) and
+  [tusende](https://ordbokene.no/nob/nn/82574) cross-check higher ordinals.
+  These are cited linguistic facts, not an imported dictionary dataset.
+- [Unicode CLDR 49, Nynorsk locale XML](https://github.com/unicode-org/cldr/blob/96e54b273d2da4ec6fbad350ba19ff23fa24a588/common/main/nn.xml),
+  revision `96e54b273d2da4ec6fbad350ba19ff23fa24a588` (release-49), provides
+  selected unit/currency metadata: `sekund`, `minutt`, `timar`, `kilowattimar`,
+  `radianar`, `steradianar`, and `kuwaitiske dinarar`. Its 490,146 inspected
+  bytes have SHA-256
+  `30cac90c46840c8c8d98375b4d301fc871e4e4181f53206225ad8b8ee3f63dfd`.
+  Only a small, manually selected/adapted metadata subset is used; inheritance
+  markers, formatting patterns and the full XML are not copied into runtime
+  data. Copyright 2001–2026 Unicode, Inc.; these data are under **Unicode-3.0**,
+  not the separate restrictions on the LDML specification. The applicable
+  notice is reproduced in [LICENSES/Unicode-3.0.txt](LICENSES/Unicode-3.0.txt)
+  and NOTICE; the upstream license is also pinned in the manifest.
+
+Application choices, rather than rules attributed to these sources:
+
+- Use `language="nb"` by default, with explicit `language="nn"`; never change
+  unclaimed prose or infer language from the input. Unknown language settings
+  are rejected. Custom dictionary readings are retained exactly as supplied.
+- Select unaccented `ein`/`ei`/`eitt`, `første` rather than `fyrste`, and a single
+  deterministic set of accepted numeral variants. No dialect selection is made.
+- Preserve the existing group-based number algorithm, supported numeric bounds,
+  date validity, year cutoff, span precedence and review behavior. Number gender
+  comes from known currency/unit metadata, not a general syntax analyzer.
+- Apply the same natural/digit-by-digit decimal choices in both languages.
+  Unit powers, composed SI prefixes (including watt-/ampere-hour compounds),
+  fractions, legal subdivisions and number ranges use the chosen profile.
+- Keep proper broadcaster brands such as `TV Norge` and `NRK Nyheter` intact;
+  generated channel numbers use Nynorsk forms. Letter spellings, version
+  readings and supported contextual aliases are project conventions.
+
+The packaged [nb_tn/provenance.json](nb_tn/provenance.json) records source roles,
+derivation and artifact hashes for the Nynorsk extension. Run
+`python -m nb_tn.provenance` for the offline integrity check, or add `--fetch`
+to verify hash-recorded upstream bytes. No hash is asserted for the mutable
+Språkrådet/dictionary reference pages; links and inspection dates are recorded.
+Hashes detect content changes, not authorship or linguistic validity. They do
+not guarantee continued upstream availability. First-party source and its
+provenance record are versioned together; the checker never updates either.
+Earlier Bokmål investigation provenance is documented below and is not
+retroactively represented as fully hash-pinned. Source-owner or native-speaker
+review, corpus-wide accuracy, and acoustic evaluation have not been performed.
+
 ## Decimal speech policy (2026-11-12)
 
 [Matematikksenteret: Desimaltall som par av hele tall](https://www.matematikksenteret.no/nn/node/6558)

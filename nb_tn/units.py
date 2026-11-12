@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import re
 
 from .numbers import ordinal
+from .profiles import get_profile
 
 
 @dataclass(frozen=True)
@@ -15,6 +16,11 @@ class UnitReading:
     singular: str
     plural: str
     neuter: bool = False
+    gender: str | None = None
+
+    @property
+    def number_gender(self) -> str:
+        return self.gender or ("n" if self.neuter else "m")
 
 
 BASE_UNITS = {
@@ -103,7 +109,8 @@ _FOLDED = {s.casefold() for s in (*BASE_UNITS, *ALIASES)}
 _FOLDED.update((p + base).casefold() for p in PREFIXES for base in BASE_UNITS)
 
 
-def _atom(symbol: str) -> tuple[UnitReading, int]:
+def _atom(symbol: str, language: str = "nb") -> tuple[UnitReading, int]:
+    profile = get_profile(language)
     symbol = symbol.replace("Ω", "Ω").replace("ℓ", "l")
     match = re.fullmatch(r"(?P<base>[A-Za-zµμΩ°]+\.?)(?P<power>.*)", symbol)
     if not match:
@@ -116,14 +123,20 @@ def _atom(symbol: str) -> tuple[UnitReading, int]:
     if not 1 <= abs(exponent) <= 9:
         raise ValueError("unit powers outside supported ±1..±9")
     reading = ALIASES.get(base) or BASE_UNITS.get(base)
+    if base in profile.unit_forms:
+        singular, plural, gender = profile.unit_forms[base]
+        reading = UnitReading(singular, plural, gender == "n", gender)
     root = base
     if reading is None:
         for prefix in sorted(PREFIXES, key=len, reverse=True):
             if base.startswith(prefix) and base[len(prefix):] in BASE_UNITS:
                 root = base[len(prefix):]
                 original = BASE_UNITS[root]
+                if root in profile.unit_forms:
+                    singular, plural, gender = profile.unit_forms[root]
+                    original = UnitReading(singular, plural, gender == "n", gender)
                 reading = UnitReading(PREFIXES[prefix] + original.singular,
-                                      PREFIXES[prefix] + original.plural, original.neuter)
+                                      PREFIXES[prefix] + original.plural, original.neuter, original.gender)
                 break
     if reading is None:
         raise ValueError("unknown or incorrectly cased unit symbol: " + symbol)
@@ -132,12 +145,13 @@ def _atom(symbol: str) -> tuple[UnitReading, int]:
         if root == "m" and power in (2, 3):
             name = ("kvadrat" if power == 2 else "kubikk") + reading.singular
         else:
-            name = reading.singular + (" i kvadrat" if power == 2 else " i " + ordinal(power) + " potens")
-        reading = UnitReading(name, name, reading.neuter)
+            name = reading.singular + (" i kvadrat" if power == 2 else " i " + ordinal(power, language=language) + " potens")
+        reading = UnitReading(name, name, reading.neuter, reading.gender)
     return reading, exponent
 
 
-def parse_unit(symbol: str) -> UnitReading:
+def parse_unit(symbol: str, *, language: str = "nb") -> UnitReading:
+    get_profile(language)
     normalized = re.sub(r"[ \t]+", "", symbol)
     if normalized in SPECIAL_COMPOUNDS:
         return SPECIAL_COMPOUNDS[normalized]
@@ -150,7 +164,7 @@ def parse_unit(symbol: str) -> UnitReading:
         if part in ("/", "·", "⋅", "∙", "*", "×"):
             division = part == "/"
             continue
-        reading, power = _atom(part)
+        reading, power = _atom(part, language)
         (denominator if division != (power < 0) else numerator).append(reading)
     if not numerator:
         phrase = "per " + " ".join(r.singular for r in denominator)
@@ -161,7 +175,7 @@ def parse_unit(symbol: str) -> UnitReading:
         if denominator:
             names.extend(("per", " ".join(r.singular for r in denominator)))
         return " ".join(names)
-    return UnitReading(words(False), words(True), numerator[0].neuter)
+    return UnitReading(words(False), words(True), numerator[0].neuter, numerator[0].gender)
 
 
 def looks_like_unit(symbol: str, *, attached: bool = False) -> bool:

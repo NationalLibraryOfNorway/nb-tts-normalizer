@@ -1,9 +1,9 @@
-# Norwegian TTS normalization: Bokmål frontend
+# Norwegian TTS normalization: Bokmål and Nynorsk frontend
 
 [![Tests](https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/actions/workflows/tests.yml/badge.svg)](https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/actions/workflows/tests.yml)
 
 A dependency-free Python frontend for an already Norwegian-capable TTS model.
-It expands recognized written forms into spoken Bokmål, records exact source
+It expands recognized written forms into spoken Bokmål (default) or Nynorsk, records exact source
 spans, and retains unresolved spans with review issues. This is an initial
 ruleset, not a complete Norwegian normalizer or a pronunciation guarantee.
 
@@ -49,6 +49,10 @@ normalized text, replacements, review issues, and `needs_review`. `--strict`
 exits with status 2 if any review issue exists; it emits no plain text in that
 case, but still emits JSON when combined with `--json`. Without `--strict`,
 plain text output includes unchanged unresolved spans and warnings go to stderr.
+
+`--language {nb,nn}` selects the language of generated readings. Bokmål (`nb`)
+remains the default. Nynorsk (`nn`) is explicit; this is not language detection
+or translation of surrounding prose. See the Nynorsk examples below.
 
 `--decimal-style {natural,digits}` selects decimal speech. The default `natural`
 reads `3,14` as `tre komma fjorten`; `digits` gives `tre komma en fire` for
@@ -115,6 +119,99 @@ normalizer = NorwegianNormalizer(channels={})
 optional spaces and case variants, such as `NRK1`/`NRK 1`, `TV2`/`TV 2`, and
 `NRKP1 +`. These aliases do not change unit-symbol case rules.
 
+## Nynorsk
+
+Available since version 0.6.0. Select the language explicitly:
+
+```python
+from nb_tn import NorwegianNormalizer
+
+nn = NorwegianNormalizer(language="nn")
+assert nn.normalize("NOK 1,01 og 2 kWh") == "ei krone og eitt øre og to kilowattimar"
+assert nn.normalize("8. mai 2026") == "åttande mai to tusen og tjueseks"
+assert nn.normalize("§§ 1–3") == "paragrafane ein til tre"
+assert nn.normalize("t.d. 1 kg") == "til dømes ein kilo"
+
+technical_nn = NorwegianNormalizer(language="nn", decimal_style="digits")
+assert technical_nn.normalize("3,21") == "tre komma to ein"
+assert nn.normalize("3,21") == "tre komma tjueein"
+
+# Input separators are independent of the language used for speech.
+nn_us = NorwegianNormalizer(language="nn", currency_locale="en-US")
+assert nn_us.normalize("$1.01") == "ein amerikansk dollar og ein cent"
+```
+
+```bash
+nb-tn --language nn --strict 'NOK 1,01 og 2 kWh'
+nb-tn --language nn --decimal-style digits --strict '3,21'
+nb-tn --language nn --json '31. februar 2026'
+```
+
+Full-sentence examples (exact default Nynorsk output, also covered by tests):
+
+Input:
+
+```text
+Etter § 2-1 skal 1,75 m kabel koste kr 150,50 ved levering 8. mai 2026.
+```
+
+Output:
+
+```text
+Etter paragraf to ein skal ein komma syttifem meter kabel koste hundre og femti kroner og femti øre ved levering åttande mai to tusen og tjueseks.
+```
+
+Input:
+
+```text
+Den 8 . 5 . 2026 vart 75 m2 leigde ut for $125,75, med eit tillegg på 3,14 % etter §§ 3–5.
+```
+
+Output:
+
+```text
+Den åttande mai to tusen og tjueseks vart syttifem kvadratmeter leigde ut for hundre og tjuefem amerikanske dollar og syttifem cent, med eit tillegg på tre komma fjorten prosent etter paragrafane tre til fem.
+```
+
+Input:
+
+```text
+Etter § 7 skal prisen 8. juni 2026 vere ¥1,21 per 1,75 kWh, medan toleransen er 0,05 %.
+```
+
+Output:
+
+```text
+Etter paragraf sju skal prisen åttande juni to tusen og tjueseks vere ein komma tjueein kinesiske yuan per ein komma syttifem kilowattimar, medan toleransen er null komma null fem prosent.
+```
+
+Both languages use the same span engine and validation rules. Nynorsk covers
+numbers, dates/times, units and powers, currencies, fractions, ratios/ranges,
+legal references, enumeration, phone digits, software versions and channel
+numbers. Profiles and dictionaries are instance-local, so different languages
+can be used concurrently. Custom acronym/channel mappings retain their supplied
+values and replace the corresponding defaults as before.
+
+The fixed Nynorsk policy chooses unaccented `ein`/`ei`/`eitt`, `første`, `sju`,
+`tjue`, `sjuande`, `millionar` and `milliardar`. Known currency/unit metadata
+selects gender; there is no general grammatical analysis of surrounding nouns.
+An unqualified `1` therefore reads `ein`, even before an unknown prose noun.
+`sekund` and `minutt` use invariant plurals; time-based compounds use `timar`.
+`t.d.`, `m.a.`, `osb.` and `d.e.` are recognized alongside shared abbreviations.
+Existing ordinary words, already spelled-out numbers and official channel
+brands are **not translated**: `TV Norge` stays `te ve Norge`, and
+`NRK Nyheter` retains `nyheter`. Generated channel numbers use `ein` in Nynorsk.
+Letter spellings and version-reading conventions remain application policies,
+not phonetic transcriptions or dialect selection.
+
+Number forms were checked against [Nynorsksenteret's grammar, p. 36](https://nynorsksenteret.no/uploads/documents/Heile_grammatikken_1.pdf);
+abbreviations follow [Språkrådet](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/forkortelser/).
+Gender/inflection references and the pinned Unicode CLDR unit metadata are
+listed in [SOURCES.md](SOURCES.md#nynorsk-support-2026-11-12) and the shipped
+[provenance manifest](nb_tn/provenance.json). Tests check written outputs; no
+native-speaker review, corpus-wide accuracy claim or Nynorsk audio evaluation
+is implied. The acoustic model must itself support the requested speech.
+
 ## Decimal reading policy
 
 Since version 0.5.0, `decimal_style="natural"` is the default. Exactly two
@@ -180,6 +277,10 @@ The adapter uses natural decimal speech by default. For technical speech, pass
 `normalizer=NorwegianNormalizer(decimal_style="digits")` to
 `generate_norwegian(...)` (import `NorwegianNormalizer` from `nb_tn`).
 
+For Nynorsk, pass `normalizer=NorwegianNormalizer(language="nn")`; combine
+`language="nn"` with `decimal_style="digits"` if needed. The same adapter and
+strict review behavior are used, and `normalize=False` is still passed to VoxCPM.
+
 Prompt transcripts are passed through as supplied; they should describe what
 is actually spoken in the reference recording. Pass only speech text to this
 adapter. If you use VoxCPM's `(control instruction)` prefixes, normalize the speech
@@ -212,6 +313,8 @@ The code is split into:
 - `nb_tn/normalizer.py`: rule precedence, span ownership, date/quantity parsing,
   and reports.
 - `nb_tn/numbers.py`: cardinal, ordinal and year readings.
+- `nb_tn/profiles.py`: immutable Bokmål/Nynorsk number forms, vocabulary,
+  abbreviation policies and language-specific contextual cues.
 - `nb_tn/readings.py`: fraction, version, letter, Roman numeral and digit readings.
 - `nb_tn/legal.py`: chapter/section paths, lists, ranges and subdivisions.
 - `nb_tn/units.py`: case-sensitive SI prefixes, unit names, powers, compound
@@ -221,12 +324,17 @@ The code is split into:
   monetary number locales and currency-symbol assumptions.
 - `nb_tn/voxcpm.py`: optional adapter for an already loaded model.
 - `nb_tn/__main__.py`: CLI and strict-mode exit behavior.
+- `nb_tn/provenance.json` / `provenance.py`: source/derivation records and an
+  offline artifact-integrity audit, with optional upstream verification.
 
 To extend coverage, add a structured rule before the generic fallback, include
 successful and rejected examples in the tests, and document any new ambiguity
 policy. Do not silently discard unsupported numbers or symbols.
 
 ## Fixed reading policy and coverage
+
+The examples in this table use the default Bokmål profile. The same notation
+categories are supported by the Nynorsk profile with localized generated words.
 
 | Written form | Spoken form / policy |
 | --- | --- |
@@ -268,8 +376,8 @@ policy. Do not silently discard unsupported numbers or symbols.
 | `NAV`, `NRK`, `USA`, `EU`, `EØS` | Exact-case pronunciation dictionary; caller can replace it |
 
 Modern forms `tjue`, `tretti`, `sju` are used. Bokmål `en`/`ett` are selected in
-known contexts; number words are emitted without stress accents. This does not
-offer Nynorsk or dialect selection.
+known contexts; Nynorsk uses `ein`/`ei`/`eitt`. Number words are emitted without
+stress accents. Language selection is explicit; dialect selection is not offered.
 
 The arithmetic converter supports signed integers with absolute value below
 one trillion (`10**12`), including millions and milliards. **Bare numbers of
@@ -280,7 +388,8 @@ a recognized date or is introduced by `år`/`året`.
 
 ## Foreign currencies, input locale and code-switching
 
-All supported amounts are verbalized **in Norwegian Bokmål**, regardless of
+All supported amounts are verbalized **in the selected Norwegian language**
+(Bokmål by default, or Nynorsk), regardless of
 the currency's country. Supported codes are **NOK, EUR, USD, GBP, SEK, DKK, CAD,
 AUD, CHF, CNY, JPY and KWD**. Prefix and suffix codes, supported symbols,
 selected written currency names, matching paired markers, negative amounts and
@@ -503,6 +612,10 @@ reconstruction from original offsets, idempotence of representative outputs,
 CLI behavior, and a mocked VoxCPM adapter. They do not measure perceptual audio
 quality or establish corpus-wide normalization accuracy.
 
+The Nynorsk suite adds independent expected outputs, full sentences,
+gender/inflection cases, shared-syntax span parity, concurrent language isolation,
+both decimal modes, rejection behavior and installed provenance checks.
+
 Other limitations include English decimal-point conventions, unknown acronym
 pronunciations, currencies outside the listed codes and forms, scientific
 notation and arbitrary unit algebra, pronunciation changes across Norwegian dialects, and normalization
@@ -531,8 +644,41 @@ See [SOURCES.md](SOURCES.md) for the exact inspected model revisions, links to
 language guidance, and the distinction between source conventions and application
 policies such as the year cutoff, tolerant separators and software-version readings.
 
+Nynorsk number/inflection references additionally include **Nynorsksenteret**,
+**Nynorskordboka** (Språkrådet and the University of Bergen), and selected
+**Unicode CLDR 49** metadata. Their roles and application-specific adaptations
+are documented separately; no upstream normalizer implementation, dictionary
+database, grammar document or model is bundled for this extension. The small
+CLDR-derived metadata selection is attributed in NOTICE and distributed under
+the included [Unicode License V3](LICENSES/Unicode-3.0.txt).
+
+The versioned [Nynorsk provenance manifest](nb_tn/provenance.json) ships in the
+Python package. It maps implementation artifacts to references and derivation,
+records artifact SHA-256 hashes, pins CLDR to an exact revision, and records the
+inspected grammar PDF digest. CI checks the artifact hashes and references:
+
+```bash
+python -m nb_tn.provenance          # Offline; also works after installation.
+python -m nb_tn.provenance --fetch  # Optional verification of hash-recorded sources.
+```
+
+There are no network calls during normalization or ordinary tests. Reference-only
+web pages are cited with an access date, not claimed to be immutable snapshots;
+`--fetch` verifies only sources with recorded hashes. Upstream changes or missing
+URLs cause verification to fail rather than refreshing provenance silently.
+Hashes provide byte-level traceability and detect unrecorded artifact changes;
+they do not prove authorship or linguistic correctness. Existing Bokmål
+investigation provenance remains in SOURCES.md rather than being retroactively
+claimed as fully hash-pinned by the new Nynorsk record.
+
+When changing a tracked module, review its source/derivation record and update
+its artifact digest deliberately. New borrowed metadata needs an appropriate
+reference and license notice; changing hashes merely to silence CI is not a
+provenance review. The checker never rewrites the manifest.
+
 ## License
 
 Apache License 2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). This license covers
-the implementation and documentation in this repository. The external models and
+the first-party implementation and documentation in this repository. Selected
+CLDR-derived metadata retains Unicode-3.0 terms as described above. The external models and
 projects credited above retain their own licenses and are not bundled here.

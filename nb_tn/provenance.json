@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "scope": "Nynorsk support and shared-renderer refactor introduced in 0.6.0; historical investigation remains documented in SOURCES.md.",
+  "implementation_credit": "National Library of Norway, Språkmodeller, with OpenAI Codex assistance.",
+  "limitations": "Hashes verify inspected bytes and artifact identity, not authorship, linguistic correctness, native-speaker review, acoustic performance or continued upstream availability. Mutable reference-only pages are not immutable snapshots.",
+  "sources": {
+    "nn-grammar": {
+      "title": "Nynorsksenteret: Nynorsk grammatikk, Ordklasser og setningar",
+      "url": "https://nynorsksenteret.no/uploads/documents/Heile_grammatikken_1.pdf",
+      "accessed": "2026-11-12",
+      "role": "Printed page 36: number forms; grammatical reference only, no document or upstream algorithm redistributed.",
+      "bytes": 1940417,
+      "sha256": "92e02fc19edb8c3163190885d7348745b5fa84e91af0f040365564a9d103522b"
+    },
+    "nn-abbreviations": {
+      "title": "Språkrådet: Forkortelser",
+      "url": "https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/forkortelser/",
+      "accessed": "2026-11-12",
+      "role": "Abbreviation meanings read through the web interface; mutable reference-only page, not vendored or hash-pinned."
+    },
+    "nn-dictionary": {
+      "title": "Nynorskordboka (Språkrådet and University of Bergen)",
+      "url": "https://ordbokene.no/nn/krone",
+      "accessed": "2026-11-12",
+      "role": "Gender and inflection facts; reference-only pages, no dictionary database or definitions imported.",
+      "entries": [
+        "https://ordbokene.no/nn/krone",
+        "https://ordbokene.no/nn/sekund",
+        "https://ordbokene.no/nn/stykk",
+        "https://ordbokene.no/nno/nn/11243",
+        "https://ordbokene.no/nn/paragraf",
+        "https://ordbokene.no/nn/halv",
+        "https://ordbokene.no/nn/hundrede",
+        "https://ordbokene.no/nob/nn/82574"
+      ]
+    },
+    "cldr-nn-49": {
+      "title": "Unicode CLDR 49: common/main/nn.xml",
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/96e54b273d2da4ec6fbad350ba19ff23fa24a588/common/main/nn.xml",
+      "revision": "96e54b273d2da4ec6fbad350ba19ff23fa24a588",
+      "accessed": "2026-11-12",
+      "role": "Selected unit and currency metadata manually adapted: sekund, minutt, timar, kilowattimar, radianar, steradianar, kuwaitiske dinarar. Full XML and inheritance/formatting machinery not bundled.",
+      "license": "Unicode-3.0",
+      "notice": "Copyright 2001–2026 Unicode, Inc.; LICENSES/Unicode-3.0.txt and NOTICE.",
+      "bytes": 490146,
+      "sha256": "30cac90c46840c8c8d98375b4d301fc871e4e4181f53206225ad8b8ee3f63dfd"
+    },
+    "cldr-license-49": {
+      "title": "Unicode CLDR 49 copyright and permission notice",
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/96e54b273d2da4ec6fbad350ba19ff23fa24a588/LICENSE",
+      "revision": "96e54b273d2da4ec6fbad350ba19ff23fa24a588",
+      "accessed": "2026-11-12",
+      "role": "Unicode-3.0 permission notice reproduced for the selected locale metadata; LDML specification text not copied.",
+      "bytes": 3193,
+      "sha256": "65eb33419e22a297550a811b5b535f5e532f9a7e0114b516c0ea18afd53c3804"
+    },
+    "existing-provenance": {
+      "title": "Existing Bokmål investigation and policies at v0.5.0",
+      "url": "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/blob/8a358b71f94493845192db12495062309d1432cb/SOURCES.md",
+      "accessed": "2026-11-12",
+      "role": "Historical NbAiLab/peresolb investigation, first-party arithmetic/span engine, SI/currency/legal/broadcaster sources; not a claim that all historical upstreams are hash-pinned."
+    },
+    "project-policy": {
+      "title": "Project-authored Nynorsk reading policy",
+      "url": "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/blob/main/SOURCES.md#nynorsk-support-2026-11-12",
+      "accessed": "2026-11-12",
+      "role": "Variant selection, gender propagation, natural decimal speech, context aliases, proper-name preservation, spellings and scope; not an external normative source."
+    }
+  },
+  "artifacts": {
+    "profiles.py": {
+      "sha256": "baa7760e213c35c132a56931b95b8a7ad6b5ff39acb125d6b56ee88d8a0b976a",
+      "origin": "First-party profile with a small manually selected/adapted Unicode CLDR metadata subset.",
+      "license": "Apache-2.0 AND Unicode-3.0",
+      "sources": [
+        "nn-grammar",
+        "nn-abbreviations",
+        "nn-dictionary",
+        "cldr-nn-49",
+        "cldr-license-49",
+        "project-policy"
+      ]
+    },
+    "numbers.py": {
+      "sha256": "ec9fccdf557186d54537e4f4f5b0aff6da9d78bf695b4bf55b4d298a81a41d2b",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "existing-provenance",
+        "nn-grammar",
+        "nn-dictionary",
+        "project-policy"
+      ]
+    },
+    "readings.py": {
+      "sha256": "57db10aebe7d0f543b8c581829881aed677070c8978a7a1409669d6bfd073bdf",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "existing-provenance",
+        "nn-grammar",
+        "nn-dictionary",
+        "project-policy"
+      ]
+    },
+    "units.py": {
+      "sha256": "5ecc972c8bf0113049c70200e17e551afb02d3f9a3e98527cb6e19c05fe13941",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0 AND Unicode-3.0",
+      "sources": [
+        "existing-provenance",
+        "nn-dictionary",
+        "cldr-nn-49",
+        "cldr-license-49",
+        "project-policy"
+      ]
+    },
+    "currencies.py": {
+      "sha256": "3b830c04c35355991f2d6088a494729667b7daf90cf6b993130f7e2ee1cf50d1",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0 AND Unicode-3.0",
+      "sources": [
+        "existing-provenance",
+        "nn-dictionary",
+        "cldr-nn-49",
+        "cldr-license-49",
+        "project-policy"
+      ]
+    },
+    "legal.py": {
+      "sha256": "dea7d73211012b7318198e84e05e190d6a786c514cc6ddb3cb5d32ae4347cc1d",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "existing-provenance",
+        "nn-grammar",
+        "nn-dictionary",
+        "project-policy"
+      ]
+    },
+    "channels.py": {
+      "sha256": "32b42e8f302cece24b4b0396044c3df709badcd116db2d04e23b034a83e1cecb",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "existing-provenance",
+        "project-policy"
+      ]
+    },
+    "normalizer.py": {
+      "sha256": "66cd352a7ecda4cf170036ee673dabbcb184da29d6ed64c54f95304ffb5ecefc",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "existing-provenance",
+        "project-policy"
+      ]
+    },
+    "__main__.py": {
+      "sha256": "15c0613d6d9e63d212bfd61d20ecc11d868983c6b1196080017ecad77f29acd4",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "existing-provenance",
+        "project-policy"
+      ]
+    },
+    "provenance.py": {
+      "sha256": "be9c87912561d471d144f9c7f6c2572bd3fb8c3629623ade4e95dab274d17760",
+      "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "project-policy"
+      ]
+    }
+  }
+}

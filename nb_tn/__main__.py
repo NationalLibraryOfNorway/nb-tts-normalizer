@@ -7,10 +7,12 @@ from .normalizer import NorwegianNormalizer
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Normalize Bokmaal text for TTS")
+    parser = argparse.ArgumentParser(description="Normalize Bokmaal or Nynorsk text for TTS")
     parser.add_argument("text", nargs="?", help="Text, or read stdin if omitted")
     parser.add_argument("--json", action="store_true", help="Include original spans and review issues")
     parser.add_argument("--strict", action="store_true", help="Exit 2 without emitting text if review is needed")
+    parser.add_argument("--language", choices=("nb", "nn"), default="nb",
+                        help="Language of generated readings (default: nb); surrounding prose is not translated")
     parser.add_argument("--decimal-style", choices=("natural", "digits"), default="natural",
                         help="Read two-digit fractional parts as whole numbers (default: natural), or digit by digit")
     parser.add_argument("--currency-locale", choices=("nb-NO", "en-US"), default="nb-NO",
@@ -24,7 +26,7 @@ def main():
     if args.yen_currency:
         symbols["¥"] = args.yen_currency
     normalizer = NorwegianNormalizer(currency_locale=args.currency_locale, symbol_currencies=symbols,
-                                     decimal_style=args.decimal_style)
+                                     decimal_style=args.decimal_style, language=args.language)
     result = normalizer.analyze(args.text if args.text is not None else sys.stdin.read())
     if args.json:
         print(json.dumps({**asdict(result), "needs_review": result.needs_review}, ensure_ascii=False, indent=2))

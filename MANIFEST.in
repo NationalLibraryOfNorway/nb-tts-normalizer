@@ -1,0 +1,2 @@
+include SOURCES.md
+recursive-include LICENSES *.txt
