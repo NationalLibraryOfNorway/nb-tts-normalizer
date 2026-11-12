@@ -26,3 +26,8 @@ see LICENSES/Unicode-3.0.txt. The upstream CLDR XML is not bundled.
 The shipped nb_tn/provenance.json identifies references, derivation, source
 content hashes where recorded, and implementation artifact hashes for this
 extension. Acknowledgements do not imply source-owner review or endorsement.
+
+Additional physical/angular unit-name metadata is adapted from common/main/no.xml
+and common/main/nn.xml at that same CLDR revision, under Unicode-3.0. The
+government-hosted 2007 measurement draft informed the unit inventory and notation
+tests. Its document, obsolete definitions and legal restrictions are not bundled.

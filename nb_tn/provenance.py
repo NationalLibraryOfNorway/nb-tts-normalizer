@@ -1,4 +1,4 @@
-"""Audit the shipped Nynorsk provenance record; networking is opt-in only.
+"""Audit the shipped normalization provenance record; networking is opt-in only.
 
 Hashes establish byte identity, not authorship, linguistic correctness, or
 continued availability of an upstream URL. See SOURCES.md for those limits.
@@ -67,7 +67,7 @@ def verify_provenance(manifest: dict | None = None, *, fetch: bool = False) -> l
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Verify the shipped Nynorsk provenance record")
+    parser = argparse.ArgumentParser(description="Verify the shipped normalization provenance record")
     parser.add_argument("--fetch", action="store_true",
                         help="Also fetch hash-recorded references; other source URLs remain reference-only")
     args = parser.parse_args()
@@ -76,7 +76,7 @@ def main():
         print(error)
     if errors:
         raise SystemExit(1)
-    print("Nynorsk provenance verified" + (" (including hash-recorded upstream references)" if args.fetch else " (offline)"))
+    print("Normalization provenance verified" + (" (including hash-recorded upstream references)" if args.fetch else " (offline)"))
 
 
 if __name__ == "__main__":

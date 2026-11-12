@@ -34,5 +34,7 @@ jobs:
           nb-tn --strict --language nn --decimal-style digits '3,21'
           nb-tn --strict '9,81m/s2'
           nb-tn --strict --language nn '9,81m/s2'
+          nb-tn --strict '2 J/(kg K), 120 mmHg og 30°15′20″'
+          nb-tn --strict --language nn '2 J/(kg K), 120 mmHg og 30°15′20″'
           python -m nb_tn.provenance
           python -c "from importlib.metadata import files; assert any(str(p).endswith('LICENSES/Unicode-3.0.txt') for p in files('nb-tts-normalizer'))"

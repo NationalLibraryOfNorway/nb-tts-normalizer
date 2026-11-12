@@ -74,13 +74,14 @@ class UnitAndChannelTests(unittest.TestCase):
             "2 m^4": "to meter i fjerde potens",
             "5 m²/s": "fem kvadratmeter per sekund",
             "5 J/kg/K": "fem joule per kilo kelvin",
+            "5 W/(m²·K)": "fem watt per kvadratmeter kelvin",
             "80 km/h": "åtti kilometer i timen",
             "10–15 kg/m3": "ti til femten kilo per kubikkmeter",
         })
 
     def test_unknown_symbol_units_are_not_partially_normalized(self):
         for original in ("5 mw", "5 mhz", "5 kwh", "5 XYZ", "5XYZ", "½XYZ", "5 m/xyz",
-                         "5 W/(m²·K)", "5 m^10", "5 m^0", "5 m//s", "5 m/", "5 m^",
+                         "5 W/(m²·XYZ)", "5 m^10", "5 m^0", "5 m//s", "5 m/", "5 m^",
                          "1/2 XYZ", "10–15 XYZ"):
             with self.subTest(original=original):
                 report = self.normalizer.analyze(original)

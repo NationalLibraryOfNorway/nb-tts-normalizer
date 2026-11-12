@@ -266,6 +266,48 @@ class NorwegianNormalizer:
               rf"(?P<phone>\+?\d+(?:[ \t.{re.escape(DASH_CHARS)}]+\d+)*)(?![\w:])",
               "telephone", telephone)
 
+        # Prime/quote marks alone may mean feet/inches or punctuation. Only a
+        # degree-led chain or an explicit angle cue selects angular subunits.
+        arcminute = r"[′']"
+        arcsecond = r"(?:''|[″\"])"
+        component = rf"{INTEGER}(?:,\d+)?"
+
+        def angular_quantity(raw: str, unit: str) -> str:
+            reading = parse_unit(unit)
+            singular = "," not in raw and abs(_integer(raw)) == 1
+            return number(raw, gender=reading.number_gender) + " " + (reading.singular if singular else reading.plural)
+
+        def angle_chain(match: re.Match) -> str:
+            fields = match.groupdict()
+            parts = [angular_quantity(fields["degrees"], "deg")]
+            for name, unit in (("arc_minutes", "arcmin"), ("arc_seconds", "arcsec")):
+                raw = fields.get(name)
+                if raw:
+                    whole, comma, _ = raw.partition(",")
+                    if _integer(whole) >= 60:
+                        raise ValueError("angular minute/second component must be below 60")
+                    if name == "arc_minutes" and comma and fields.get("arc_seconds"):
+                        raise ValueError("fractional angular minutes cannot precede a seconds component")
+                    parts.append(angular_quantity(raw, unit))
+            return " ".join(parts)
+
+        apply(rf"{LEFT}(?P<degrees>{NUMBER})[ \t]*(?:°|deg)[ \t]*"
+              rf"(?P<arc_minutes>{component})[ \t]*{arcminute}(?!['′])"
+              rf"(?:[ \t]*(?P<arc_seconds>{component})[ \t]*{arcsecond})?(?!\w|[ \t]*\d)",
+              "angle", angle_chain, flags=0)
+        apply(rf"{LEFT}(?P<degrees>{NUMBER})[ \t]*(?:°|deg)[ \t]*"
+              rf"(?P<arc_seconds>{component})[ \t]*{arcsecond}(?!\w|[ \t]*\d)",
+              "angle", angle_chain, flags=0)
+        protect(rf"{LEFT}{NUMBER}[ \t]*(?:°|deg)[ \t]*{SIGN}?\d[\d, \t′'″\"{re.escape(SIGN_CHARS)}]*",
+                "malformed degree-led angle")
+        apply(rf"\b(?P<label>(?:vinkel(?:en)?|buevinkel(?:en)?|bogevinkel(?:en)?)"
+              rf"(?:[ \t]+(?:er|på))?[ \t]*:?[ \t]*)(?P<number>{NUMBER})[ \t]*"
+              rf"(?P<prime>{arcsecond}|{arcminute})(?!\w)", "angle",
+              lambda m: m["label"] + angular_quantity(m["number"],
+                        "arcmin" if m["prime"] in ("'", "′") else "arcsec"))
+        protect(rf"{LEFT}{NUMBER}[ \t]*[′″](?!\w)",
+                "prime-mark quantity needs angle context; use arcmin/arcsec or a degree-led angle")
+
         def clock_range(match: re.Match) -> str:
             def endpoint(prefix: str) -> str:
                 h, minute = int(match[prefix + "hour"]), int(match[prefix + "minute"])

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nb-tts-normalizer"
-version = "0.6.1"
+version = "0.7.0"
 description = "Conservative Bokmaal and Nynorsk text normalization for Norwegian TTS"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -27,4 +27,4 @@ include = ["nb_tn*"]
 license-files = ["LICENSE", "NOTICE", "LICENSES/*.txt"]
 
 [tool.setuptools.package-data]
-nb_tn = ["provenance.json"]
+nb_tn = ["provenance.json", "pdf_unit_inventory.json"]

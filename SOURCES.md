@@ -1,5 +1,62 @@
 # Sources and implementation provenance
 
+## PDF unit inventory and compound notation (2026-11-12)
+
+The supplied historical draft was located at its [direct government PDF URL](https://www.regjeringen.no/globalassets/upload/nhd/vedlegg/forskrifter/forskriftommaal_0707.pdf).
+This URL yielded the full 76-page document: 269,420 bytes, SHA-256
+`f2eac3904b09efab0a9651ee23d4d43424d6b1bbef705f5aa19577ab8c2b6986`.
+The original redirect's earlier HTTP 403 is retained as historical evidence;
+the successfully retrieved direct PDF has its own hash-recorded manifest entry.
+No document is bundled. Tables 1–9, the hectare/decare paragraph, and numeric
+unit use throughout the later fee tables were audited from the extracted text;
+the grouped table-5 expressions were also visually inspected on printed p. 6.
+The bytes were downloaded using curl. In this environment the same direct URL
+returns HTTP 403 to the optional Python/urllib re-fetch; that audit reports
+the network failure rather than skipping or refreshing the recorded digest.
+
+The shipped [pdf_unit_inventory.json](nb_tn/pdf_unit_inventory.json) has 67
+hand-authored rows for every named unit/quantity in tables 1–5 and 7–9,
+the hectare/decare paragraph, and the later `m³/h`, `t/h` and `t/min` forms.
+Table 6 prefixes have their own exhaustive test. Both languages are checked
+against every inventory row; canonical unit notation is used for the PDF's
+`Sr`, `Kat` and `Ohm` spellings. Base-unit expressions are read as written,
+without importing possibly erroneous table identities or obsolete definitions.
+
+New direct coverage includes ar, gon, the ASCII degree alias, mercury-pressure
+notation, written nautical-mile forms, carat quantities and angular subunits.
+First-party parser changes handle products, negative exponents, grouped
+denominators and bounded nested groups. Whitespace products only extend through
+registered symbols to avoid claiming arbitrary surrounding prose. Group powers,
+equations, unbounded symbolic algebra and general scientific-number notation
+are not implemented. No numerical or legal-validity conversion is performed.
+
+Short unit-name metadata is adapted from these pinned primary sources:
+
+- [Unicode CLDR 49, Norwegian no.xml](https://github.com/unicode-org/cldr/blob/96e54b273d2da4ec6fbad350ba19ff23fa24a588/common/main/no.xml),
+  818,840 bytes, SHA-256
+  `f86fb14e337eca3cc3b58c96a3681649d54481ee9d5808cbdc9256dd52569bb6`,
+  supplies Bokmål arc-unit names and Norwegian nautical-mile, carat and mercury
+  pressure forms. [The already pinned nn.xml](https://github.com/unicode-org/cldr/blob/96e54b273d2da4ec6fbad350ba19ff23fa24a588/common/main/nn.xml)
+  supplies `bogeminutt` and `bogesekund`; its inheritance markers are not copied
+  into runtime data. The metadata adaptation remains under Unicode-3.0,
+  attributed in NOTICE and LICENSES/Unicode-3.0.txt; no upstream XML is bundled.
+- Nynorskordboka: [ar](https://ordbokene.no/nn/ar),
+  [gon](https://ordbokene.no/nn/gon), [karat](https://ordbokene.no/nn/karat),
+  and [mil](https://ordbokene.no/nn/mil) cross-check gender and terminology.
+  Only grammatical facts are used; no dictionary database or definitions are copied.
+
+Using `arcmin`/`arcsec` as explicit disambiguators, recognizing ASCII quote marks
+only within a degree-led or cued angle, flagging unqualified Unicode primes,
+requiring sexagesimal subcomponents below 60, and rejecting fractional minutes
+followed by seconds are application policies. Bare quote marks can represent
+other things, including feet/inches or punctuation. The normalizer does not
+silently decide those meanings. Existing `kg` → `kilo` and geometric names
+are retained; already spelled-out arbitrary prose is not translated.
+
+The direct PDF, extra CLDR source, new packaged inventory and changed renderer
+artifacts are covered by the provenance record and integrity tests. The 2007
+draft is not asserted to be current law or a complete contemporary SI catalogue.
+
 ## Physical-unit power readings (2026-11-12)
 
 The user supplied [Forskrift om målenheter og måling, government-hosted PDF](https://www.regjeringen.no/link/8610546553aa40b1acb67b6f3ed0385a.aspx?id=2221947).
@@ -9,8 +66,9 @@ p. 4 names acceleration with `sekund i annen`, while naming area/volume
 The first page contains a `[dato] 2007` placeholder and the definitions predate
 the SI revision: this is a historical draft used as wording evidence, not
 asserted to be current legislation. Apparent symbol-case/typesetting errors
-in other tables are not adopted. Direct byte retrieval returned HTTP 403;
-no PDF content hash, immutable snapshot or bundled document is claimed.
+in other tables are not adopted. During the 0.6.1 change, direct byte retrieval
+of the supplied redirect returned HTTP 403 and no content hash was claimed.
+The later 0.7.0 extension above records a successful direct-PDF download.
 
 [Språkrådet: Tall, tid og dato, «Andre» og «annen»](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/tall-tid-dato/)
 states that Bokmål permits both ordinal forms and Nynorsk uses `andre`.

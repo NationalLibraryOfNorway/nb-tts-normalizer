@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Nynorsk support and shared-renderer refactor introduced in 0.6.0; physical-unit power reading correction in 0.6.1; historical investigation remains documented in SOURCES.md.",
+  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), and the PDF-wide unit inventory, compound notation and angular readings (0.7.0). Historical investigation remains in SOURCES.md.",
   "implementation_credit": "National Library of Norway, Språkmodeller, with OpenAI Codex assistance.",
   "limitations": "Hashes verify inspected bytes and artifact identity, not authorship, linguistic correctness, native-speaker review, acoustic performance or continued upstream availability. Mutable reference-only pages are not immutable snapshots.",
   "sources": {
@@ -31,7 +31,11 @@
         "https://ordbokene.no/nn/paragraf",
         "https://ordbokene.no/nn/halv",
         "https://ordbokene.no/nn/hundrede",
-        "https://ordbokene.no/nob/nn/82574"
+        "https://ordbokene.no/nob/nn/82574",
+        "https://ordbokene.no/nn/ar",
+        "https://ordbokene.no/nn/gon",
+        "https://ordbokene.no/nn/karat",
+        "https://ordbokene.no/nn/mil"
       ]
     },
     "cldr-nn-49": {
@@ -77,11 +81,30 @@
       "url": "https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/tall-tid-dato/",
       "accessed": "2026-11-12",
       "role": "Bokmål permits both ordinal andre and annen; Nynorsk uses andre. Project selects i annen for squared non-length units in Bokmål and i andre in Nynorsk; ordinary ordinal readings and geometric names stay unchanged. Mutable reference-only page."
+    },
+    "government-unit-pdf-bytes": {
+      "title": "Forskrift om målenheter og måling: direct historical government PDF",
+      "url": "https://www.regjeringen.no/globalassets/upload/nhd/vedlegg/forskrifter/forskriftommaal_0707.pdf",
+      "accessed": "2026-11-12",
+      "bytes": 269420,
+      "sha256": "f2eac3904b09efab0a9651ee23d4d43424d6b1bbef705f5aa19577ab8c2b6986",
+      "role": "Direct PDF located via official search after the redirect had returned HTTP 403. Full 76-page text audited for unit notation; tables 1-9 and later flow quantities mapped in pdf_unit_inventory.json; printed page 6 visually inspected. Historical [dato] 2007 draft, not current law or SI definitions. No document bundled. Bytes retrieved with curl; Python urllib re-fetch currently receives HTTP 403 and the optional audit reports that failure."
+    },
+    "cldr-no-49": {
+      "title": "Unicode CLDR 49: common/main/no.xml",
+      "url": "https://raw.githubusercontent.com/unicode-org/cldr/96e54b273d2da4ec6fbad350ba19ff23fa24a588/common/main/no.xml",
+      "revision": "96e54b273d2da4ec6fbad350ba19ff23fa24a588",
+      "accessed": "2026-11-12",
+      "bytes": 818840,
+      "sha256": "f86fb14e337eca3cc3b58c96a3681649d54481ee9d5808cbdc9256dd52569bb6",
+      "license": "Unicode-3.0",
+      "role": "Selected Norwegian unit-name metadata: bueminutt/bueminutter, buesekund/buesekunder, nautical miles, carat and mercury pressure; no upstream XML, inheritance engine or formatting implementation bundled.",
+      "notice": "Copyright 2001–2026 Unicode, Inc.; LICENSES/Unicode-3.0.txt and NOTICE."
     }
   },
   "artifacts": {
     "profiles.py": {
-      "sha256": "aa68a2386658ca14f1535e985d9ec2569a5640654905ac2b63579123a8414ef9",
+      "sha256": "dd72960ae61d96a29571079c7286e4ac2268e6d7336b45f51caf53956626a470",
       "origin": "First-party profile with a small manually selected/adapted Unicode CLDR metadata subset.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -92,7 +115,9 @@
         "cldr-license-49",
         "project-policy",
         "government-unit-draft",
-        "sprakradet-ordinals"
+        "sprakradet-ordinals",
+        "government-unit-pdf-bytes",
+        "cldr-no-49"
       ]
     },
     "numbers.py": {
@@ -118,7 +143,7 @@
       ]
     },
     "units.py": {
-      "sha256": "def1dbc9bf0eff00a39fec0e3869e80c420194f9a2f4c75b25d5460fd7e2fcdc",
+      "sha256": "e3b1c11d9bb9dba54dc61244ae98c453c54f8498dc8dba9fbe34e2146b9b9045",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -128,7 +153,9 @@
         "cldr-license-49",
         "project-policy",
         "government-unit-draft",
-        "sprakradet-ordinals"
+        "sprakradet-ordinals",
+        "government-unit-pdf-bytes",
+        "cldr-no-49"
       ]
     },
     "currencies.py": {
@@ -164,12 +191,16 @@
       ]
     },
     "normalizer.py": {
-      "sha256": "66cd352a7ecda4cf170036ee673dabbcb184da29d6ed64c54f95304ffb5ecefc",
+      "sha256": "6994db020da22abf0810d6087b1e7c6978db5895fb990e6885cd4687ece99176",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
         "existing-provenance",
-        "project-policy"
+        "project-policy",
+        "government-unit-pdf-bytes",
+        "cldr-no-49",
+        "cldr-nn-49",
+        "cldr-license-49"
       ]
     },
     "__main__.py": {
@@ -182,10 +213,23 @@
       ]
     },
     "provenance.py": {
-      "sha256": "be9c87912561d471d144f9c7f6c2572bd3fb8c3629623ade4e95dab274d17760",
+      "sha256": "d7783d73af4ca350c7126e3e3008ef97e6ea2d1879893e2cc2cb6ed5947865ec",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
+        "project-policy"
+      ]
+    },
+    "pdf_unit_inventory.json": {
+      "sha256": "20e2abbcb1c8a8ed9ebcf74a944859f6151f728deef1738a129a6d886ba2a936",
+      "origin": "First-party hand-authored PDF audit inventory and expected unit readings; selected short CLDR names adapted with attribution.",
+      "license": "Apache-2.0 AND Unicode-3.0",
+      "sources": [
+        "government-unit-pdf-bytes",
+        "cldr-no-49",
+        "cldr-nn-49",
+        "cldr-license-49",
+        "nn-dictionary",
         "project-policy"
       ]
     }

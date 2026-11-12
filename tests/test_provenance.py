@@ -10,7 +10,7 @@ class ProvenanceTests(unittest.TestCase):
         manifest = load_manifest()
         self.assertEqual(set(manifest["artifacts"]), {
             "profiles.py", "numbers.py", "readings.py", "units.py", "currencies.py",
-            "legal.py", "channels.py", "normalizer.py", "__main__.py", "provenance.py",
+            "legal.py", "channels.py", "normalizer.py", "__main__.py", "provenance.py", "pdf_unit_inventory.json",
         })
         self.assertEqual(verify_provenance(manifest), [])
         self.assertEqual(manifest["sources"]["cldr-nn-49"]["revision"],
@@ -29,6 +29,13 @@ class ProvenanceTests(unittest.TestCase):
         reference = manifest["sources"]["government-unit-draft"]
         self.assertIn("[dato] 2007", reference["role"])
         self.assertNotIn("sha256", reference)  # No bytes were retrieved for hashing.
+
+    def test_direct_pdf_is_now_byte_pinned_and_inventory_is_tracked(self):
+        m = load_manifest()
+        source = m["sources"]["government-unit-pdf-bytes"]
+        self.assertEqual(source["bytes"], 269420)
+        self.assertEqual(source["sha256"], "f2eac3904b09efab0a9651ee23d4d43424d6b1bbef705f5aa19577ab8c2b6986")
+        self.assertIn("government-unit-pdf-bytes", m["artifacts"]["pdf_unit_inventory.json"]["sources"])
 
     def test_artifact_changes_are_detected_not_silently_refreshed(self):
         original = load_manifest()

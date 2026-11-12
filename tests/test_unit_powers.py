@@ -71,7 +71,7 @@ class UnitPowerTests(unittest.TestCase):
 
     def test_rejected_units_still_keep_original_spans(self):
         for language in ("nb", "nn"):
-            for text in ("2 s^0", "2 s^10", "2 m//s²", "2 W/(m²·K)", "2 s^", "2 mhz"):
+            for text in ("2 s^0", "2 s^10", "2 m//s²", "2 W/(m²·XYZ)", "2 s^", "2 mhz"):
                 report = NorwegianNormalizer(language=language).analyze(text)
                 self.assertEqual(report.text, text)
                 self.assertTrue(report.needs_review)

@@ -1,0 +1,481 @@
+{
+  "source": "government-unit-pdf-bytes",
+  "scope": "Every named quantity/unit in PDF tables 1-5 and 7-9, hectare/decare in section 2-8, and additional flow notation in sections 6-7, 6-9 and 6-10. Table 6 prefixes are tested separately.",
+  "policies": [
+    "Use canonical sr, kat and Ω for the draft's Sr, Kat and Ohm spellings.",
+    "arcmin/arcsec are unambiguous input aliases for the draft's angular quote marks; bare primes require angle context.",
+    "Retain everyday kg -> kilo and geometric kvadrat-/kubikk- names; do not convert quantities or assert old definitions/legal restrictions.",
+    "Expected values are hand-authored plural unit phrases for a quantity of 2, not generated from the implementation."
+  ],
+  "rows": [
+    {
+      "table": 1,
+      "quantity": "length",
+      "unit": "m",
+      "nb": "meter",
+      "nn": "meter"
+    },
+    {
+      "table": 1,
+      "quantity": "mass",
+      "unit": "kg",
+      "nb": "kilo",
+      "nn": "kilo"
+    },
+    {
+      "table": 1,
+      "quantity": "time",
+      "unit": "s",
+      "nb": "sekunder",
+      "nn": "sekund"
+    },
+    {
+      "table": 1,
+      "quantity": "electric-current",
+      "unit": "A",
+      "nb": "ampere",
+      "nn": "ampere"
+    },
+    {
+      "table": 1,
+      "quantity": "thermodynamic-temperature",
+      "unit": "K",
+      "nb": "kelvin",
+      "nn": "kelvin"
+    },
+    {
+      "table": 1,
+      "quantity": "amount-of-substance",
+      "unit": "mol",
+      "nb": "mol",
+      "nn": "mol"
+    },
+    {
+      "table": 1,
+      "quantity": "luminous-intensity",
+      "unit": "cd",
+      "nb": "candela",
+      "nn": "candela"
+    },
+    {
+      "table": 2,
+      "quantity": "celsius-temperature",
+      "unit": "°C",
+      "nb": "grader celsius",
+      "nn": "grader celsius"
+    },
+    {
+      "table": 3,
+      "quantity": "area",
+      "unit": "m²",
+      "nb": "kvadratmeter",
+      "nn": "kvadratmeter"
+    },
+    {
+      "table": 3,
+      "quantity": "volume",
+      "unit": "m³",
+      "nb": "kubikkmeter",
+      "nn": "kubikkmeter"
+    },
+    {
+      "table": 3,
+      "quantity": "velocity",
+      "unit": "m/s",
+      "nb": "meter per sekund",
+      "nn": "meter per sekund"
+    },
+    {
+      "table": 3,
+      "quantity": "acceleration",
+      "unit": "m/s²",
+      "nb": "meter per sekund i annen",
+      "nn": "meter per sekund i andre"
+    },
+    {
+      "table": 3,
+      "quantity": "angular-velocity",
+      "unit": "rad/s",
+      "nb": "radianer per sekund",
+      "nn": "radianar per sekund"
+    },
+    {
+      "table": 3,
+      "quantity": "density",
+      "unit": "kg/m³",
+      "nb": "kilo per kubikkmeter",
+      "nn": "kilo per kubikkmeter"
+    },
+    {
+      "table": 3,
+      "quantity": "kinematic-viscosity",
+      "unit": "m²/s",
+      "nb": "kvadratmeter per sekund",
+      "nn": "kvadratmeter per sekund"
+    },
+    {
+      "table": 3,
+      "quantity": "mass-concentration",
+      "unit": "kg/m³",
+      "nb": "kilo per kubikkmeter",
+      "nn": "kilo per kubikkmeter"
+    },
+    {
+      "table": 3,
+      "quantity": "amount-concentration",
+      "unit": "mol/m³",
+      "nb": "mol per kubikkmeter",
+      "nn": "mol per kubikkmeter"
+    },
+    {
+      "table": 3,
+      "quantity": "luminance",
+      "unit": "cd/m²",
+      "nb": "candela per kvadratmeter",
+      "nn": "candela per kvadratmeter"
+    },
+    {
+      "table": 4,
+      "quantity": "plane-angle",
+      "unit": "rad",
+      "nb": "radianer",
+      "nn": "radianar"
+    },
+    {
+      "table": 4,
+      "quantity": "solid-angle",
+      "unit": "sr",
+      "nb": "steradianer",
+      "nn": "steradianar"
+    },
+    {
+      "table": 4,
+      "quantity": "frequency",
+      "unit": "Hz",
+      "nb": "hertz",
+      "nn": "hertz"
+    },
+    {
+      "table": 4,
+      "quantity": "force",
+      "unit": "N",
+      "nb": "newton",
+      "nn": "newton"
+    },
+    {
+      "table": 4,
+      "quantity": "pressure-stress",
+      "unit": "Pa",
+      "nb": "pascal",
+      "nn": "pascal"
+    },
+    {
+      "table": 4,
+      "quantity": "energy-work-heat",
+      "unit": "J",
+      "nb": "joule",
+      "nn": "joule"
+    },
+    {
+      "table": 4,
+      "quantity": "power",
+      "unit": "W",
+      "nb": "watt",
+      "nn": "watt"
+    },
+    {
+      "table": 4,
+      "quantity": "electric-charge",
+      "unit": "C",
+      "nb": "coulomb",
+      "nn": "coulomb"
+    },
+    {
+      "table": 4,
+      "quantity": "electric-potential",
+      "unit": "V",
+      "nb": "volt",
+      "nn": "volt"
+    },
+    {
+      "table": 4,
+      "quantity": "capacitance",
+      "unit": "F",
+      "nb": "farad",
+      "nn": "farad"
+    },
+    {
+      "table": 4,
+      "quantity": "resistance",
+      "unit": "Ω",
+      "nb": "ohm",
+      "nn": "ohm"
+    },
+    {
+      "table": 4,
+      "quantity": "conductance",
+      "unit": "S",
+      "nb": "siemens",
+      "nn": "siemens"
+    },
+    {
+      "table": 4,
+      "quantity": "magnetic-flux",
+      "unit": "Wb",
+      "nb": "weber",
+      "nn": "weber"
+    },
+    {
+      "table": 4,
+      "quantity": "magnetic-flux-density",
+      "unit": "T",
+      "nb": "tesla",
+      "nn": "tesla"
+    },
+    {
+      "table": 4,
+      "quantity": "inductance",
+      "unit": "H",
+      "nb": "henry",
+      "nn": "henry"
+    },
+    {
+      "table": 4,
+      "quantity": "luminous-flux",
+      "unit": "lm",
+      "nb": "lumen",
+      "nn": "lumen"
+    },
+    {
+      "table": 4,
+      "quantity": "illuminance",
+      "unit": "lx",
+      "nb": "lux",
+      "nn": "lux"
+    },
+    {
+      "table": 4,
+      "quantity": "activity",
+      "unit": "Bq",
+      "nb": "becquerel",
+      "nn": "becquerel"
+    },
+    {
+      "table": 4,
+      "quantity": "absorbed-dose",
+      "unit": "Gy",
+      "nb": "gray",
+      "nn": "gray"
+    },
+    {
+      "table": 4,
+      "quantity": "dose-equivalent",
+      "unit": "Sv",
+      "nb": "sievert",
+      "nn": "sievert"
+    },
+    {
+      "table": 4,
+      "quantity": "catalytic-activity",
+      "unit": "kat",
+      "nb": "katal",
+      "nn": "katal"
+    },
+    {
+      "table": 5,
+      "quantity": "dynamic-viscosity",
+      "unit": "Pa·s",
+      "nb": "pascal sekund",
+      "nn": "pascal sekund"
+    },
+    {
+      "table": 5,
+      "quantity": "torque",
+      "unit": "m·N",
+      "nb": "meter newton",
+      "nn": "meter newton"
+    },
+    {
+      "table": 5,
+      "quantity": "heat-capacity",
+      "unit": "J/K",
+      "nb": "joule per kelvin",
+      "nn": "joule per kelvin"
+    },
+    {
+      "table": 5,
+      "quantity": "specific-heat-capacity",
+      "unit": "J/(kg·K)",
+      "nb": "joule per kilo kelvin",
+      "nn": "joule per kilo kelvin"
+    },
+    {
+      "table": 5,
+      "quantity": "electric-field-strength",
+      "unit": "V/m",
+      "nb": "volt per meter",
+      "nn": "volt per meter"
+    },
+    {
+      "table": 5,
+      "quantity": "permittivity",
+      "unit": "F/m",
+      "nb": "farad per meter",
+      "nn": "farad per meter"
+    },
+    {
+      "table": 5,
+      "quantity": "molar-entropy",
+      "unit": "J/(mol·K)",
+      "nb": "joule per mol kelvin",
+      "nn": "joule per mol kelvin"
+    },
+    {
+      "table": 7,
+      "quantity": "litre-volume",
+      "unit": "l",
+      "nb": "liter",
+      "nn": "liter"
+    },
+    {
+      "table": 7,
+      "quantity": "tonne-mass",
+      "unit": "t",
+      "nb": "tonn",
+      "nn": "tonn"
+    },
+    {
+      "table": 7,
+      "quantity": "bar-pressure",
+      "unit": "bar",
+      "nb": "bar",
+      "nn": "bar"
+    },
+    {
+      "table": 7,
+      "quantity": "are-area",
+      "unit": "a",
+      "nb": "ar",
+      "nn": "ar"
+    },
+    {
+      "table": 7,
+      "quantity": "hectare-area",
+      "unit": "ha",
+      "nb": "hektar",
+      "nn": "hektar"
+    },
+    {
+      "table": 7,
+      "quantity": "decare-area",
+      "unit": "daa",
+      "nb": "dekar",
+      "nn": "dekar"
+    },
+    {
+      "table": 8,
+      "quantity": "minute-duration",
+      "unit": "min",
+      "nb": "minutter",
+      "nn": "minutt"
+    },
+    {
+      "table": 8,
+      "quantity": "hour-duration",
+      "unit": "h",
+      "nb": "timer",
+      "nn": "timar"
+    },
+    {
+      "table": 8,
+      "quantity": "day-duration",
+      "unit": "d",
+      "nb": "døgn",
+      "nn": "døgn"
+    },
+    {
+      "table": 8,
+      "quantity": "degree-angle",
+      "unit": "deg",
+      "nb": "grader",
+      "nn": "grader"
+    },
+    {
+      "table": 8,
+      "quantity": "angular-minute",
+      "unit": "arcmin",
+      "nb": "bueminutter",
+      "nn": "bogeminutt"
+    },
+    {
+      "table": 8,
+      "quantity": "angular-second",
+      "unit": "arcsec",
+      "nb": "buesekunder",
+      "nn": "bogesekund"
+    },
+    {
+      "table": 8,
+      "quantity": "gon-angle",
+      "unit": "gon",
+      "nb": "gon",
+      "nn": "gon"
+    },
+    {
+      "table": 9,
+      "quantity": "electronvolt-energy",
+      "unit": "eV",
+      "nb": "elektronvolt",
+      "nn": "elektronvolt"
+    },
+    {
+      "table": 9,
+      "quantity": "nautical-distance",
+      "unit": "nautisk mil",
+      "nb": "nautiske mil",
+      "nn": "nautiske mil"
+    },
+    {
+      "table": 9,
+      "quantity": "knot-speed",
+      "unit": "kn",
+      "nb": "knop",
+      "nn": "knop"
+    },
+    {
+      "table": 9,
+      "quantity": "mercury-pressure",
+      "unit": "mmHg",
+      "nb": "millimeter kvikksølv",
+      "nn": "millimeter kvikksølv"
+    },
+    {
+      "table": 9,
+      "quantity": "gemstone-mass",
+      "unit": "karat",
+      "nb": "karat",
+      "nn": "karat"
+    },
+    {
+      "section": "6-7",
+      "quantity": "volume-flow",
+      "unit": "m³/h",
+      "nb": "kubikkmeter per time",
+      "nn": "kubikkmeter per time"
+    },
+    {
+      "section": "6-9",
+      "quantity": "mass-flow-hour",
+      "unit": "t/h",
+      "nb": "tonn per time",
+      "nn": "tonn per time"
+    },
+    {
+      "section": "6-10",
+      "quantity": "mass-flow-minute",
+      "unit": "t/min",
+      "nb": "tonn per minutt",
+      "nn": "tonn per minutt"
+    }
+  ]
+}

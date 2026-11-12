@@ -502,13 +502,12 @@ Unit symbols are **case-sensitive**. For example:
 | `5 kg/m³` | `fem kilo per kubikkmeter` |
 
 The parser resolves an exact unit or an SI prefix plus a unit, then reads
-products (`·`, `⋅`, `∙`, `*`, `×`), division (`/`), and powers. Powers can be written
+products (`·`, `⋅`, `∙`, `*`, `×`, whitespace), division (`/`), and powers. Powers can be written
 with superscripts, caret notation, or the `m2`/`m3` aliases. Absolute powers 1–9
 are supported; negative powers become denominator readings. Square/cubic length
 units use `kvadrat-`/`kubikk-`; other squared units use `i annen` in Bokmål and
 `i andre` in Nynorsk. Higher powers retain their ordinal `potens` readings.
-No values are
-converted, rounded, or rescaled. The familiar existing `kg` -> `kilo` and
+No values are converted, rounded, or rescaled. The familiar existing `kg` -> `kilo` and
 `km/t` -> `kilometer i timen` readings are retained.
 
 Since 0.6.1, the squared-unit default follows the unit wording in table 3 of
@@ -538,8 +537,82 @@ squared-unit reading to other unit factors is an explicit project extension.
 The PDF has a `[dato] 2007` placeholder and old SI definitions; it is cited for
 unit wording only, not as a statement of current law. Its apparent `Sr`, `Kat`
 and `Ohm` symbol spellings are not imported; case-sensitive SI symbols remain
-`sr`, `kat` and `Ω`. No definitions, conversions, parser scope, CLI names or
-default language are changed. See [SOURCES.md](SOURCES.md#physical-unit-power-readings-2026-11-12).
+`sr`, `kat` and `Ω`. This 0.6.1 reading change did not alter definitions,
+conversions, CLI names or the default language. The 0.7.0 coverage extension
+below additionally supports grouped and implicit unit products. See
+[SOURCES.md](SOURCES.md#physical-unit-power-readings-2026-11-12).
+
+### PDF unit coverage (0.7.0)
+
+The packaged [PDF unit inventory](nb_tn/pdf_unit_inventory.json) contains **67
+hand-audited rows** covering every named quantity/unit in tables 1–5 and 7–9,
+the hectare/decare definitions, and the later flow-rate expressions. Table 6's
+prefixes are tested separately. Each row has independently written Bokmål and
+Nynorsk expectations; CI exercises the complete inventory in both languages.
+
+| PDF coverage | Supported notation / examples |
+| --- | --- |
+| Base quantities and Celsius | `m`, `kg`, `s`, `A`, `K`, `mol`, `cd`, `°C` |
+| Area, volume, speed, acceleration, angular speed | `m²`, `m³`, `m/s`, `m/s²`, `rad/s` |
+| Density, viscosity, concentration, luminance | `kg/m³`, `m²/s`, `Pa s`, `mol/m³`, `cd/m²` |
+| All named derived units | `rad`, `sr`, `Hz`, `N`, `Pa`, `J`, `W`, `C`, `V`, `F`, `Ω`, `S`, `Wb`, `T`, `H`, `lm`, `lx`, `Bq`, `Gy`, `Sv`, `kat` |
+| Heat capacity, specific heat, field strength, permittivity, molar entropy | `J/K`, `J/(kg·K)`, `V/m`, `F/m`, `J/(mol·K)` |
+| Other multiples and angles | `l`/`L`, `t`, `bar`, `a`/`ar`, `ha`, `daa`, `deg`, `gon` |
+| Maritime, mercury pressure, gemstones | `nautisk mil`/`nautiske mil`, `kn`, `mmHg`, `karat` |
+| Later flow quantities | `m³/h`, `t/h`, `t/min` |
+
+Balanced parentheses and implicit products now work, including `J/(kg K)`,
+`kg m-3`, and base-unit forms such as `m-2 kg-1 s4 A2`. Only registered symbols
+extend a unit candidate across whitespace, so `5 m kabel` remains `fem meter
+kabel`. An ASCII product dot is accepted as `kg.s` or `kg . s`, not across a
+sentence boundary such as `kg. S`. Division is left-associative: `m/s kg`
+means `(m/s)·kg`; use parentheses for a whole denominator. No unit cancellation,
+dimensional inference or numerical conversion is performed. Expressions are
+limited to 512 characters, 64 factors and nesting depth 8; group powers such
+as `(m/s)^2`, equations and general symbolic algebra remain unsupported.
+
+Angular minutes/seconds use explicit `arcmin`/`arcsec` aliases, a degree-led
+chain, or an explicit `vinkel` cue:
+
+| Input | Bokmål | Nynorsk |
+| --- | --- | --- |
+| `30°15′20″` | `tretti grader femten bueminutter tjue buesekunder` | `tretti grader femten bogeminutt tjue bogesekund` |
+| `vinkelen er 5′` | `vinkelen er fem bueminutter` | `vinkelen er fem bogeminutt` |
+| `120 mmHg` | `hundre og tjue millimeter kvikksølv` | same |
+| `1 nautisk mil` | `en nautisk mil` | `ei nautisk mil` |
+
+ASCII `'`/`"` also work in degree-led or explicitly cued angles. Bare Unicode
+prime quantities (`5′`, `5″`) require review because they might mean feet/inches;
+unqualified ASCII quote marks remain punctuation, not an assumed angle unit.
+Arcminute/arcsecond components in a degree-led chain must be nonnegative and
+below 60. Fractional minutes cannot also have a following seconds component.
+These ambiguity rules and the explicit `arcmin`/`arcsec` spellings are application
+policies, not new symbols claimed from the PDF.
+
+This is complete coverage of the document's **unit inventory**, not a promise
+to interpret every possible physical equation or infer a magnitude from a bare
+number. General scientific-number notation, equation evaluation, and chemical
+identifiers remain outside this unit extension. The historical PDF's direct
+download is now hash-recorded; its old SI definitions and legal restrictions
+are still not imported. See [SOURCES.md](SOURCES.md#pdf-unit-inventory-and-compound-notation-2026-11-12).
+
+### Mixed full-sentence examples
+
+Actual default outputs, also tested as exact strings:
+
+```text
+Bokmål input:
+Den 8. mai 2026 målte vi 9,81 m/s² og 2 A², og kontrollen kostet kr 150,50 etter § 2-1.
+
+Bokmål output:
+Den åttende mai to tusen og tjueseks målte vi ni komma åttien meter per sekund i annen og to ampere i annen, og kontrollen kostet hundre og femti kroner og femti øre etter paragraf to en.
+
+Nynorsk input:
+Den 8. mai 2026 målte vi 9,81 m/s² og 2 A², og kontrollen kosta kr 150,50 etter § 2-1.
+
+Nynorsk output:
+Den åttande mai to tusen og tjueseks målte vi ni komma åttiein meter per sekund i andre og to ampere i andre, og kontrollen kosta hundre og femti kroner og femti øre etter paragraf to ein.
+```
 
 `l` and `L` both mean liter; `µ`, `μ` and ASCII `u` are accepted micro-prefix
 aliases, and `Ω` is accepted as an ohm-sign alias for `Ω`. Incorrect casing such
@@ -548,14 +621,14 @@ as `mhz` or `mw` is **flagged**, not guessed as MHz/MW/mW. The existing lowercas
 `en dag`; the parser does not mistake the Norwegian day noun for dekagram.
 
 Unsupported symbol-shaped quantity expressions are retained as whole spans
-with review issues, including `5 XYZ`, `5 mhz`, `5 m//s`, and `5 W/(m²·K)`. The
+with review issues, including `5 XYZ`, `5 mhz`, `5 m//s`, and `5 W/(m²·XYZ)`. The
 detector considers known symbols with wrong casing, uppercase/mixed-case tokens,
 attached unit-like strings, and explicit unit operators. It does not label every
 ordinary count noun as a unit: `5 personer` becomes `fem personer`. Consequently,
 an unknown separated lowercase word such as `5 frobnitz` is not guaranteed to
 be flagged. Uppercase prose can conversely trigger conservative review.
-Parenthesized unit groups and implicit products such as `kg m-3` are not yet
-parsed; use explicit forms such as `kg/m3` for supported compound readings.
+Balanced known-unit groups and implicit products are supported as above;
+malformed grouping or an unknown factor keeps the quantity for review.
 
 Broadcast names are a finite dictionary, matched longest-first. `NRK P1+` is
 read as `enn err kå pe en pluss`, rather than matching `P1` and losing `+`.

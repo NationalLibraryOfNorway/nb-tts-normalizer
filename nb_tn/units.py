@@ -61,6 +61,8 @@ BASE_UNITS = {
     "Ah": UnitReading("amperetime", "amperetimer"),
     "eV": UnitReading("elektronvolt", "elektronvolt"),
     "bar": UnitReading("bar", "bar"),
+    "a": UnitReading("ar", "ar", True),
+    "t": UnitReading("tonn", "tonn", True),
 }
 PREFIXES = {
     "Q": "quetta", "R": "ronna", "Y": "yotta", "Z": "zetta", "E": "exa", "P": "peta",
@@ -85,6 +87,15 @@ ALIASES = {
     "mil": UnitReading("mil", "mil"),
     "dB": UnitReading("desibel", "desibel"),
     "kn": UnitReading("knop", "knop"),
+    "deg": UnitReading("grad", "grader"),
+    "gon": UnitReading("gon", "gon"),
+    "ar": UnitReading("ar", "ar", True),
+    "mmHg": UnitReading("millimeter kvikksølv", "millimeter kvikksølv"),
+    "karat": UnitReading("karat", "karat"),
+    "nautisk mil": UnitReading("nautisk mil", "nautiske mil"),
+    "nautiske mil": UnitReading("nautisk mil", "nautiske mil"),
+    "arcmin": UnitReading("bueminutt", "bueminutter", True),
+    "arcsec": UnitReading("buesekund", "buesekunder", True),
     "ohm": UnitReading("ohm", "ohm"),
     "stk": UnitReading("stykk", "stykker", True),
     "stk.": UnitReading("stykk", "stykker", True),
@@ -96,17 +107,35 @@ SPECIAL_COMPOUNDS = {
 }
 
 _SUPER = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺", "0123456789-+")
-_POWER = r"(?:[ \t]*\^[ \t]*[+−-]?\d+|[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+|[23]|[−-][123])?"
-_ATOM = rf"(?:stk\.|[A-Za-zµμΩΩℓ°]+){_POWER}"
-# Parentheses are captured to reject the whole expression rather than reading a
-# valid prefix of unsupported grouping. Implicit products (kg m-3) are not parsed.
-_FACTOR = rf"(?:{_ATOM}|\([A-Za-zµμΩΩℓ°0-9²³⁻⁺^+−/·⋅∙*×. \t-]+\))"
-UNIT_PATTERN = rf"{_FACTOR}(?:[ \t]*[/·⋅∙*×][ \t]*{_FACTOR})*"
+_POWER = r"(?:[ \t]*\^[ \t]*[+−-]?\d+|[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]+|\d+|[−-]\d+)?"
+_NAMED = r"nautisk(?:e)?[ \t]+mil"
+_ATOM = rf"(?:{_NAMED}|stk\.|[A-Za-zµμΩΩℓ°]+){_POWER}"
+_TOKEN = re.compile(_ATOM)
+_GROUP_CHARS = r"[A-Za-zµμΩΩℓ°0-9⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺^+−/·⋅∙*×. \t-]"
+_GROUP_CONTENT = _GROUP_CHARS + "*"
+for _ in range(7):
+    _GROUP_CONTENT = rf"(?:{_GROUP_CHARS}|\({_GROUP_CONTENT}\))*"
+# Group powers are candidates so the parser can flag the complete unsupported
+# expression instead of letting its numeric pieces fall through separately.
+_FACTOR = rf"(?:{_ATOM}|\({_GROUP_CONTENT}\){_POWER})"
+
+
+def _symbols_pattern(symbols) -> str:
+    return "(?:" + "|".join(re.escape(s).replace(r"\ ", r"[ \t]+")
+                            for s in sorted(symbols, key=len, reverse=True)) + ")"
+
+
+# Only registered symbols may extend a candidate across plain whitespace.
+# This prevents "5 m kabel" from being swallowed as a malformed unit product.
+_KNOWN = (rf"(?:{_symbols_pattern(set(BASE_UNITS) | set(ALIASES))}|"
+          rf"{_symbols_pattern(PREFIXES)}{_symbols_pattern(BASE_UNITS)}){_POWER}(?![\w°])")
+UNIT_PATTERN = (rf"{_FACTOR}(?:[ \t]*[/·⋅∙*×][ \t]*{_FACTOR}|"
+                rf"(?:[ \t]+\.[ \t]+|\.(?=\S)){_KNOWN}|[ \t]+{_KNOWN})*")
 UNIT_END = r"(?![\w²³⁻⁺^/·⋅∙*×]|[ \t]*[/·⋅∙*×])"
 # A second, deliberately loose candidate catches malformed expressions such as
 # m//s and m^ after the structured rule has had its chance. The parser still
 # validates the candidate, and prose count nouns are filtered by the caller.
-_RAW_FACTOR = r"[A-Za-zµμΩΩℓ°][A-Za-zµμΩΩℓ°0-9⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺^+−/·⋅∙*×()-]*"
+_RAW_FACTOR = r"[A-Za-zµμΩΩℓ°(][A-Za-zµμΩΩℓ°0-9⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺^+−/·⋅∙*×()-]*"
 UNKNOWN_UNIT_PATTERN = rf"{_RAW_FACTOR}(?:[ \t]*[/·⋅∙*×][ \t]*[A-Za-zµμΩΩℓ°0-9⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺^+−/·⋅∙*×()-]*)*"
 _FOLDED = {s.casefold() for s in (*BASE_UNITS, *ALIASES)}
 _FOLDED.update((p + base).casefold() for p in PREFIXES for base in BASE_UNITS)
@@ -115,10 +144,10 @@ _FOLDED.update((p + base).casefold() for p in PREFIXES for base in BASE_UNITS)
 def _atom(symbol: str, language: str = "nb") -> tuple[UnitReading, int]:
     profile = get_profile(language)
     symbol = symbol.replace("Ω", "Ω").replace("ℓ", "l")
-    match = re.fullmatch(r"(?P<base>[A-Za-zµμΩ°]+\.?)(?P<power>.*)", symbol)
+    match = re.fullmatch(rf"(?P<base>{_NAMED}|[A-Za-zµμΩ°]+\.?)(?P<power>.*)", symbol)
     if not match:
         raise ValueError("unsupported unit syntax")
-    base = match["base"]
+    base = re.sub(r"[ \t]+", " ", match["base"])
     power = match["power"].replace("^", "").replace("−", "-").translate(_SUPER).strip()
     if match["power"] and not power:
         raise ValueError("incomplete unit power")
@@ -159,17 +188,66 @@ def parse_unit(symbol: str, *, language: str = "nb") -> UnitReading:
     normalized = re.sub(r"[ \t]+", "", symbol)
     if normalized in SPECIAL_COMPOUNDS:
         return SPECIAL_COMPOUNDS[normalized]
-    if "(" in normalized or ")" in normalized:
-        raise ValueError("parenthesized unit expressions need review")
-    parts = re.split(r"([/·⋅∙*×])", normalized)
+    if len(symbol) > 512:
+        raise ValueError("unit expression exceeds 512 characters")
+    position = 0
+    factor_count = 0
+
+    def whitespace() -> bool:
+        nonlocal position
+        start = position
+        while position < len(symbol) and symbol[position] in " \t":
+            position += 1
+        return position > start
+
+    def factor(depth: int) -> list[tuple[UnitReading, int]]:
+        nonlocal position, factor_count
+        whitespace()
+        if position >= len(symbol):
+            raise ValueError("missing unit factor")
+        if symbol[position] == "(":
+            if depth >= 8:
+                raise ValueError("unit grouping exceeds depth 8")
+            position += 1
+            result = expression(depth + 1)
+            if position >= len(symbol) or symbol[position] != ")":
+                raise ValueError("unbalanced unit group")
+            position += 1
+            return result
+        match = _TOKEN.match(symbol, position)
+        if match is None:
+            raise ValueError("invalid unit factor")
+        position = match.end()
+        factor_count += 1
+        if factor_count > 64:
+            raise ValueError("unit expression exceeds 64 factors")
+        return [_atom(match[0], language)]
+
+    def expression(depth: int) -> list[tuple[UnitReading, int]]:
+        nonlocal position
+        result = factor(depth)
+        while position < len(symbol):
+            spaced = whitespace()
+            if position >= len(symbol) or symbol[position] == ")":
+                break
+            operator = symbol[position]
+            if operator in "/·⋅∙*×.":
+                position += 1
+            elif spaced and _TOKEN.match(symbol, position):
+                operator = "*"
+            else:
+                raise ValueError("unsupported unit operator or group power")
+            following = factor(depth)
+            result.extend((reading, -power if operator == "/" else power) for reading, power in following)
+        return result
+
+    factors = expression(0)
+    whitespace()
+    if position != len(symbol):
+        raise ValueError("unbalanced unit group")
     numerator, denominator = [], []
-    division = False
-    for part in parts:
-        if part in ("/", "·", "⋅", "∙", "*", "×"):
-            division = part == "/"
-            continue
-        reading, power = _atom(part, language)
-        (denominator if division != (power < 0) else numerator).append(reading)
+    for reading, power in factors:
+        (denominator if power < 0 else numerator).append(reading)
     if not numerator:
         phrase = "per " + " ".join(r.singular for r in denominator)
         return UnitReading(phrase, phrase)
@@ -187,5 +265,9 @@ def looks_like_unit(symbol: str, *, attached: bool = False) -> bool:
     if attached or symbol.casefold() in _FOLDED:
         return True
     if re.search(r"[µμΩΩℓ°²³⁻⁺^/·⋅∙*×()]", symbol):
+        return True
+    # A known implicit product that exceeds parser bounds must still own its
+    # complete source span; it must not fall back to its first valid factor.
+    if re.fullmatch(rf"{_KNOWN}(?:[ \t]+{_KNOWN})+", symbol):
         return True
     return symbol.isupper() or any(ch.isupper() for ch in symbol[1:])
