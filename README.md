@@ -591,10 +591,126 @@ policies, not new symbols claimed from the PDF.
 
 This is complete coverage of the document's **unit inventory**, not a promise
 to interpret every possible physical equation or infer a magnitude from a bare
-number. General scientific-number notation, equation evaluation, and chemical
-identifiers remain outside this unit extension. The historical PDF's direct
+number. Equation evaluation and chemical identifiers remain outside this unit
+extension; bounded scientific-number support is described below. The historical PDF's direct
 download is now hash-recorded; its old SI definitions and legal restrictions
 are still not imported. See [SOURCES.md](SOURCES.md#pdf-unit-inventory-and-compound-notation-2026-11-12).
+
+### Temperature and C/F/K ambiguity
+
+Temperature units require a numeric quantity: `°C` means degrees Celsius,
+`°F` degrees Fahrenheit, and `K` kelvin (without “degrees”). Bare `C`, `F`,
+and `K` are never expanded into unit names. Crucially, a number followed by `C`
+means coulombs and `F` means farads, **not** Celsius or Fahrenheit; even a nearby
+word such as “temperaturen” does not silently change the symbol's meaning.
+Write the degree sign for Celsius/Fahrenheit. `°K` is unsupported and flagged.
+
+Actual tested readings:
+
+| Input | Bokmål | Nynorsk |
+|---|---|---|
+| `20 °C` | tjue grader celsius | same |
+| `−5 °C` | minus fem grader celsius | same |
+| `1 °C` | en grad celsius | ein grad celsius |
+| `-1 °F` | minus en grad fahrenheit | minus ein grad fahrenheit |
+| `68 °F` | sekstiåtte grader fahrenheit | same |
+| `273,15 K` | to hundre og syttitre komma femten kelvin | same |
+| `−0,25 °C` | minus null komma tjuefem grader celsius | same |
+| `1,21 °F` | en komma tjueen grader fahrenheit | ein komma tjueein grader fahrenheit |
+| `20 C` / `20 F` | tjue coulomb / tjue farad | same |
+| `20°` | tjue grader | same |
+
+Bare degree quantities keep the neutral word `grader`: the normalizer does not
+infer whether they describe an angle or a temperature, nor invent a scale.
+ASCII hyphen and mathematical minus signs work for negative values; attached
+forms such as `20°C` work too. Decimal readings respect `decimal_style`, including
+`digits`. These rules read the supplied notation, not its physical validity:
+they do not convert temperatures or reject negative kelvin values. Standalone
+`°C`/`°F` without a number remain unchanged and flagged for review. Initial-like
+forms such as `2 C. Dahl` are also preserved and flagged.
+
+### Scientific numbers
+
+Single-letter unit symbols (`N`, `C`, `J`, `W`, and others) are expanded only in
+a numeric quantity, never as bare letters or personal initials. A preceding
+number is necessary but not always sufficient: `2 N. Hansen` remains unchanged
+and flagged because it could be a numbered name. A sentence boundary such as
+`2 N. Neste ...` has the same ambiguity and also requires review. Initials at
+the start of a line can still be spelled as letters by the existing enumeration
+rule; they do not become unit names. Compound unit expressions inherit their
+numeric context. The existing bare `m²`/`cm³` area/volume aliases are a separate,
+explicit exception, not a rule for bare single letters.
+
+Both languages read the notation explicitly, without expanding it into a long
+decimal or rounding it. Bokmål remains the default.
+
+```python
+from nb_tn import NorwegianNormalizer
+
+NorwegianNormalizer().normalize("1,2 × 10⁻³")
+# en komma to ganger ti opphøyd i minus tre
+NorwegianNormalizer(language="nn").normalize("1.2e-3")
+# ein komma to gonger ti opphøgd i minus tre
+NorwegianNormalizer(decimal_style="digits").normalize("1.25e-3")
+# en komma to fem ganger ti opphøyd i minus tre
+```
+
+Supported forms: `1,2 × 10⁻³`, `1,2·10^-3`, `1,2 ⋅ 10^−3`, `1,2*10^-3`,
+`1.2e-3`, `1,2E−3`, and standalone `10⁻³` / `10^-3`. Multiplication and caret
+notation allow horizontal whitespace, including nonbreaking spaces; machine
+`e`/`E` notation does not. Explicit positive signs are spoken as `pluss`.
+The coefficient may be signed, zero, or outside the canonical standard-form
+interval: `12,0 × 10^3` is read as written, not changed into `1,2 × 10^4`.
+
+Decimal commas are required in displayed multiplication. A decimal point is
+accepted **only inside explicit machine notation**, independently of the
+currency locale; it is always spoken as `komma`. The existing `natural` decimal
+mode remains the default (`1.25e-3` starts `en komma tjuefem` / `ein komma tjuefem`).
+`digits` remains available. Trailing zeros are preserved in speech.
+
+Coefficients have at most 18 digits, without grouping or leading integer zeros
+except `0`; exponents are integers from −999 to 999, without leading zeros.
+Space-separated physical units, including `m/s²` and `J/(kg K)`, use the existing
+unit parser. Exact decimal representation is used only to select singular at
+absolute value one and plural otherwise; the scientific value is not expanded.
+Coefficient and exponent numerals keep their standalone grammatical forms.
+
+Conservative review policy (`analyze(...).needs_review`):
+
+- Integer mantissa + unsigned `e`/`E` exponent (`1e3`, `1E3`): identifier ambiguity.
+  Use `1e+3` or `1 × 10^3` when scientific notation is intended.
+- ASCII `x`, missing exponent markers, mixed decimal separators, grouped
+  coefficients, spaced machine notation, malformed/fractional/symbolic exponents,
+  and out-of-bounds values remain unchanged and flagged.
+- Parenthesized/braced exponents, signed standalone powers (`-10³`), scientific
+  ranges, attached units (`1.2e-3kg`), currency amounts and percentages require
+  review. Use whitespace before units. General equations are not interpreted.
+
+These are bounded recognition rules, not universal identifier detection: even
+`1e-3` can be an identifier in a domain-specific corpus. Review source context.
+Unrecognized ordinary words after a quantity remain prose; unit-shaped errors
+are flagged. Inspect issues before sending text to TTS.
+
+Actual full-sentence outputs, covered by exact tests:
+
+```text
+Bokmål input:
+Den 8. mai 2026 målte vi 1,2 × 10⁻³ m/s² etter § 2-1; prisen var kr 150,50.
+Output:
+Den åttende mai to tusen og tjueseks målte vi en komma to ganger ti opphøyd i minus tre meter per sekund i annen etter paragraf to en; prisen var hundre og femti kroner og femti øre.
+
+Nynorsk input:
+Den 8. mai 2026 målte vi 1.2e-3 m/s² etter § 2-1; prisen var kr 150,50.
+Output:
+Den åttande mai to tusen og tjueseks målte vi ein komma to gonger ti opphøgd i minus tre meter per sekund i andre etter paragraf to ein; prisen var hundre og femti kroner og femti øre.
+```
+
+The mathematical basis is [NDLA](https://ndla.no/r/matematikk-1p/tierpotenser-og-tall-pa-standardform/34909c868c)
+and [Matematikk.org](https://www.matematikk.org/artikkel.html?tid=188004);
+the precise spoken wording and ambiguity rules are project policy, not a
+prescribed TTS standard. All supplied references, supplementary investigation,
+and provenance boundaries are recorded in
+[SOURCES.md](SOURCES.md#scientific-number-proposal-2026-11-13).
 
 ### Mixed full-sentence examples
 
@@ -721,9 +837,10 @@ The Nynorsk suite adds independent expected outputs, full sentences,
 gender/inflection cases, shared-syntax span parity, concurrent language isolation,
 both decimal modes, rejection behavior and installed provenance checks.
 
-Other limitations include English decimal-point conventions, unknown acronym
-pronunciations, currencies outside the listed codes and forms, scientific
-notation and arbitrary unit algebra, pronunciation changes across Norwegian dialects, and normalization
+Other limitations include English decimal-point conventions outside explicit
+scientific/currency input, unknown acronym pronunciations, currencies outside
+the listed codes and forms, scientific forms outside the bounded support above,
+arbitrary unit algebra, pronunciation changes across Norwegian dialects, and normalization
 across chunk boundaries. Match whole sentences or complete list items where
 possible; slicing a token between chunks can remove the context a rule needs.
 

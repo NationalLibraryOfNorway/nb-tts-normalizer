@@ -1,5 +1,64 @@
 # Sources and implementation provenance
 
+## Scientific-number proposal (2026-11-13)
+
+First-party implementation in `nb_tn/scientific.py`, integrated into the original
+span engine. No upstream parser, algorithm, teaching text, or dataset copied.
+The proposal was approved for publication on 2026-11-13, with temperature and
+single-letter unit-context regression tests. Temperature names and symbols use
+the existing PDF/CLDR-backed unit inventory below; no new temperature metadata
+or source-derived implementation was introduced.
+
+Sources inspected through the web interface on 2026-11-13:
+
+- [NDLA: Tierpotenser og tall på standardform](https://ndla.no/r/matematikk-1p/tierpotenser-og-tall-pa-standardform/34909c868c).
+  Primary teaching reference for a coefficient times an integer power of ten,
+  negative exponents and calculator `E` notation. Strict standard form has
+  coefficient magnitude at least one and below ten for nonzero signed numbers;
+  our reader also accepts unnormalized coefficients without rewriting them.
+- [Matematikk.org: Tall på standardform](https://www.matematikk.org/artikkel.html?tid=188004).
+  Independent teaching reference confirming standard form and negative exponents
+  for small numbers. It does not prescribe our speech templates.
+- [Mattehefte: Hvordan skrive tall på standardform?](https://www.mattehefte.no/matte-10/potenser/standardform).
+  Supplied teaching reference, corroborating decimal-comma coefficients and
+  positive/negative powers. The first fetch failed; retrying the non-www URL
+  returned the redirected web extraction. No source bytes were hash-pinned.
+- [Wikibooks: Norwegian/Numbers, revision 3338134](https://en.wikibooks.org/w/index.php?title=Norwegian/Numbers&oldid=3338134).
+  Supplied secondary cross-check of decimal comma and NB/NN numeral differences.
+  It is not treated as normative: its historical spellings and broad orthographic
+  claims are not imported. Existing primary grammar/dictionary references remain
+  the basis for number forms. No Wikibooks text or tables are redistributed.
+- [Språkrådet: Tall, tid og dato](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/tall-tid-dato/).
+  Supplementary primary reference for decimal comma and plural nouns following
+  decimals. Machine decimal-point acceptance is a deliberate input exception,
+  not a claim that decimal points are standard Norwegian prose.
+
+Reading policy: Bokmål `ganger ti opphøyd i` and Nynorsk `gonger ti opphøgd i`,
+followed by a signed **cardinal** exponent. This avoids mixing ordinal unit-power
+readings with general negative exponents. Exact phrasing is a project proposal,
+not a mandatory pronunciation established by the supplied sources. Positive signs
+are retained, coefficient precision is not rounded, and existing decimal styles
+apply. Unit agreement uses an exact, bounded decimal representation; the spoken
+notation is not numerically expanded. There is no equation evaluation.
+
+Accepting a decimal point only inside machine notation, requiring an explicit
+sign or decimal coefficient for `e`/`E` notation, rejecting ASCII `x`, the resource
+bounds, and preserving malformed expressions/ranges/currency forms for review
+are first-party disambiguation choices. None guarantees identification of every
+domain-specific identifier. Nynorsk acoustic evaluation remains deferred.
+
+Unit-name expansion requires numeric context for bare single-letter symbols.
+The additional `2 N. Hansen` guard treats a following capitalized word as a
+possible personal name, preserving the quantity/initial for review. This also
+flags ambiguous sentence boundaries (`2 N. Neste ...`); it is not a personal-name
+classifier. Existing enumeration rules may read an initial as a letter, but never
+as a physical unit. Existing explicit bare area/volume aliases are unchanged.
+
+The manifest records reference URLs, roles, access date and the Wikibooks revision;
+mutable web pages are explicitly reference-only, not hash-pinned snapshots.
+Implementation hashes verify local artifact identity, not authorship, linguistic
+correctness, or continued upstream availability.
+
 ## PDF unit inventory and compound notation (2026-11-12)
 
 The supplied historical draft was located at its [direct government PDF URL](https://www.regjeringen.no/globalassets/upload/nhd/vedlegg/forskrifter/forskriftommaal_0707.pdf).
@@ -27,8 +86,9 @@ notation, written nautical-mile forms, carat quantities and angular subunits.
 First-party parser changes handle products, negative exponents, grouped
 denominators and bounded nested groups. Whitespace products only extend through
 registered symbols to avoid claiming arbitrary surrounding prose. Group powers,
-equations, unbounded symbolic algebra and general scientific-number notation
-are not implemented. No numerical or legal-validity conversion is performed.
+equations and unbounded symbolic algebra are not implemented. Scientific-number
+support was added separately as described above. No numerical or
+legal-validity conversion is performed by the unit parser.
 
 Short unit-name metadata is adapted from these pinned primary sources:
 

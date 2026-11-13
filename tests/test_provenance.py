@@ -10,7 +10,7 @@ class ProvenanceTests(unittest.TestCase):
         manifest = load_manifest()
         self.assertEqual(set(manifest["artifacts"]), {
             "profiles.py", "numbers.py", "readings.py", "units.py", "currencies.py",
-            "legal.py", "channels.py", "normalizer.py", "__main__.py", "provenance.py", "pdf_unit_inventory.json",
+            "legal.py", "channels.py", "normalizer.py", "__main__.py", "provenance.py", "pdf_unit_inventory.json", "scientific.py",
         })
         self.assertEqual(verify_provenance(manifest), [])
         self.assertEqual(manifest["sources"]["cldr-nn-49"]["revision"],
@@ -20,6 +20,15 @@ class ProvenanceTests(unittest.TestCase):
     def test_offline_audit_never_fetches_references(self):
         with patch("nb_tn.provenance.urllib.request.urlopen", side_effect=AssertionError("network forbidden")):
             self.assertEqual(verify_provenance(), [])
+
+    def test_scientific_sources_are_traceable_not_falsely_byte_pinned(self):
+        manifest = load_manifest()
+        names = {"scientific-ndla", "scientific-matematikk", "scientific-mattehefte",
+                 "scientific-wikibooks", "scientific-decimals", "scientific-policy"}
+        self.assertTrue(names.issubset(manifest["artifacts"]["scientific.py"]["sources"]))
+        for name in names:
+            self.assertNotIn("sha256", manifest["sources"][name])
+        self.assertEqual(manifest["sources"]["scientific-wikibooks"]["revision"], "3338134")
 
     def test_unit_power_policy_has_both_document_and_language_sources(self):
         manifest = load_manifest()

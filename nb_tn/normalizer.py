@@ -13,6 +13,7 @@ from . import numbers as number_readings, readings as spoken_readings, units as 
 from .profiles import NB, get_profile
 from .legal import LEGAL_PATTERN, legal_reference
 from .channels import channel_pattern, channel_readings
+from . import scientific
 from .currencies import CurrencyPolicy
 from .units import UNKNOWN_UNIT_PATTERN, UNIT_END, UNIT_PATTERN, looks_like_unit, parse_unit
 from .readings import (DASH, DASH_CHARS, SIGN, SIGN_CHARS, VULGAR_FRACTIONS,
@@ -239,6 +240,45 @@ class NorwegianNormalizer:
         apply(rf"\bv(?P<version>{version_body})(?!\w|\.\d)", "version",
               lambda m: version(m["version"], prefix=True))
         apply(LEGAL_PATTERN, "legal", partial(legal_reference, language=self.language))
+
+        # Scientific numbers precede dates, currencies, ranges and unit powers.
+        # Protect ranges as a whole: their reading needs a separate scope policy.
+        sci = scientific.CANDIDATE
+        # A number alone does not disambiguate a following name initial:
+        # "2 N. Hansen" may be a list entry, not a force measurement.
+        protect(rf"{LEFT}(?:{sci}|{NUMBER})[ \t]+[A-Z]\.(?=[ \t]+[A-ZÆØÅ])",
+                "single-letter unit followed by a capitalized word may be a name initial", flags=0)
+        protect(rf"{LEFT}[+−-]?\d+(?:[ \t\u00a0\u202f]+\d+)+"
+                rf"(?:[.,]\d+)?(?:[eE][+−-]?\d+|[ \t]*[×·⋅*][ \t]*{scientific.POWER})(?!\w)",
+                "grouped scientific coefficient needs an explicit separator policy", flags=0)
+        protect(rf"{LEFT}{scientific.VALID_SHAPE}[ \t]*{DASH}[ \t]*{scientific.VALID_SHAPE}(?!\w)",
+                "scientific-number ranges need an explicit scope policy", flags=0)
+        protect(rf"{LEFT}{scientific.VALID_SHAPE}[ \t]*{DASH}[ \t]*{NUMBER}{RIGHT}",
+                "mixed scientific-number range needs an explicit scope policy", flags=0)
+        protect(rf"{LEFT}{NUMBER}[ \t]*{DASH}[ \t]*{scientific.VALID_SHAPE}(?!\w)",
+                "mixed scientific-number range needs an explicit scope policy", flags=0)
+
+        def scientific_words(match: re.Match) -> str:
+            raw = match["scientific"]
+            # Scientific money is deliberately not passed through minor-unit
+            # arithmetic; preserve it for review instead of reading a fragment.
+            before, after = text[:match.start()], text[match.end():]
+            if re.search(r"(?:[A-Z]{3}|kr\.?|[$€£¥])[ \t]*$", before) or re.match(
+                    r"[ \t]*(?:[A-Z]{3}\b|kr\b|[$€£¥%‰])", after):
+                raise ValueError("scientific currency/percentage needs an explicit reading policy")
+            unit = parse_unit(match["scientific_unit"]) if match["scientific_unit"] else None
+            return scientific.render(raw, language=self.language, decimal_style=self.decimal_style, unit=unit)
+
+        apply(rf"{LEFT}(?P<scientific>{sci})(?!\w|[.,]\d)"
+              rf"[ \t\u00a0\u202f]+(?P<scientific_unit>{UNIT_PATTERN}){UNIT_END}",
+              "scientific", scientific_words, flags=0,
+              accept=lambda m: looks_like_unit(m["scientific_unit"], attached=False))
+        apply(rf"{LEFT}(?P<scientific>{sci})(?!\w|[.,]\d)"
+              rf"[ \t\u00a0\u202f]+(?P<scientific_unit>{UNKNOWN_UNIT_PATTERN})(?!\w)",
+              "scientific", scientific_words, flags=0,
+              accept=lambda m: looks_like_unit(m["scientific_unit"], attached=False))
+        apply(rf"{LEFT}(?P<scientific>{sci})(?!\w|[.,]\d)(?P<scientific_unit>)",
+              "scientific", scientific_words, flags=0)
 
         # Monetary markers must win over date/version-like amount punctuation.
         # Keep explicit split NOK fields ahead of a possible "kr 50" substring.

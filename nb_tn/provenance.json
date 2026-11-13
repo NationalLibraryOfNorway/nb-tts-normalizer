@@ -1,9 +1,46 @@
 {
   "schema_version": 1,
-  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), and the PDF-wide unit inventory, compound notation and angular readings (0.7.0). Historical investigation remains in SOURCES.md.",
+  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), PDF-wide unit inventory (0.7.0), and scientific-number support with unit-context and temperature regression tests (0.8.0, 2026-11-13). Historical investigation remains in SOURCES.md.",
   "implementation_credit": "National Library of Norway, Språkmodeller, with OpenAI Codex assistance.",
   "limitations": "Hashes verify inspected bytes and artifact identity, not authorship, linguistic correctness, native-speaker review, acoustic performance or continued upstream availability. Mutable reference-only pages are not immutable snapshots.",
   "sources": {
+    "scientific-ndla": {
+      "title": "NDLA: Tierpotenser og tall på standardform",
+      "url": "https://ndla.no/r/matematikk-1p/tierpotenser-og-tall-pa-standardform/34909c868c",
+      "accessed": "2026-11-13",
+      "role": "Primary teaching reference: integer powers of ten, standard form and calculator E notation. Inspected web extraction; mutable reference-only, not byte-pinned or redistributed. Speech templates and ambiguity bounds are project policy."
+    },
+    "scientific-matematikk": {
+      "title": "Matematikk.org: Tall på standardform",
+      "url": "https://www.matematikk.org/artikkel.html?tid=188004",
+      "accessed": "2026-11-13",
+      "role": "Primary teaching reference for standard form and negative exponents; inspected web extraction, reference-only, no upstream text/code copied."
+    },
+    "scientific-mattehefte": {
+      "title": "Mattehefte: Hvordan skrive tall på standardform?",
+      "url": "https://www.mattehefte.no/matte-10/potenser/standardform",
+      "accessed": "2026-11-13",
+      "role": "Supplied teaching reference corroborating decimal-comma standard form. First fetch failed; retry via non-www returned redirected web extraction. Reference-only, no retrieved source-byte hash or redistributed content."
+    },
+    "scientific-wikibooks": {
+      "title": "Wikibooks: Norwegian/Numbers",
+      "url": "https://en.wikibooks.org/w/index.php?title=Norwegian/Numbers&oldid=3338134",
+      "revision": "3338134",
+      "accessed": "2026-11-13",
+      "role": "Supplied secondary cross-check, inspected current page identifying this revision; not normative. Historical spellings and orthographic claims not adopted; no table/text copied. Revision reference, not byte-pinned."
+    },
+    "scientific-decimals": {
+      "title": "Språkrådet: Tall, tid og dato",
+      "url": "https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/tall-tid-dato/",
+      "accessed": "2026-11-13",
+      "role": "Primary decimal-comma and noun-agreement guidance, inspected web search extraction; mutable reference-only. Machine decimal-point acceptance and bounded exact unit agreement are project policy."
+    },
+    "scientific-policy": {
+      "title": "First-party scientific-number and name-initial disambiguation proposal",
+      "url": "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer",
+      "accessed": "2026-11-13",
+      "role": "Project policy in SOURCES.md#scientific-number-proposal-2026-11-13, approved for publication on 2026-11-13. Signed cardinal exponent readings, syntax bounds, identifier/currency/range review, and numeric-context/name-initial guard are project choices. No acoustic validation claimed."
+    },
     "nn-grammar": {
       "title": "Nynorsksenteret: Nynorsk grammatikk, Ordklasser og setningar",
       "url": "https://nynorsksenteret.no/uploads/documents/Heile_grammatikken_1.pdf",
@@ -191,7 +228,7 @@
       ]
     },
     "normalizer.py": {
-      "sha256": "6994db020da22abf0810d6087b1e7c6978db5895fb990e6885cd4687ece99176",
+      "sha256": "1ac8a70060eb3fe54a7d2d792ac1347f8b2b9d13175fc4d6c4e447b95154cf95",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
@@ -200,7 +237,23 @@
         "government-unit-pdf-bytes",
         "cldr-no-49",
         "cldr-nn-49",
-        "cldr-license-49"
+        "cldr-license-49",
+        "scientific-policy",
+        "scientific-ndla"
+      ]
+    },
+    "scientific.py": {
+      "sha256": "4a160ec9400761526316e2e295535c845717554b3be9a6b562ba6eecfa2ef7c6",
+      "origin": "First-party implementation with Codex assistance; no upstream parser, teaching text or data copied.",
+      "license": "Apache-2.0",
+      "sources": [
+        "scientific-ndla",
+        "scientific-matematikk",
+        "scientific-mattehefte",
+        "scientific-wikibooks",
+        "scientific-decimals",
+        "scientific-policy",
+        "nn-grammar"
       ]
     },
     "__main__.py": {
