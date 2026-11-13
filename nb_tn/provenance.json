@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), PDF-wide unit inventory (0.7.0), and scientific-number support with unit-context and temperature regression tests (0.8.0, 2026-11-13). Historical investigation remains in SOURCES.md. Reading preferences, plain symbol currency names and abbreviation aliases updated in 0.9.0 (2026-11-13).",
+  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), PDF-wide unit inventory (0.7.0), and scientific-number support with unit-context and temperature regression tests (0.8.0, 2026-11-13). Historical investigation remains in SOURCES.md. Reading preferences, plain symbol currency names and abbreviation aliases updated in 0.9.0 (2026-11-13). Optional English aliases and ambiguous-t review updated in 0.10.0 (2026-11-13).",
   "implementation_credit": "National Library of Norway, Språkmodeller, with OpenAI Codex assistance.",
   "limitations": "Hashes verify inspected bytes and artifact identity, not authorship, linguistic correctness, native-speaker review, acoustic performance or continued upstream availability. Mutable reference-only pages are not immutable snapshots.",
   "sources": {
@@ -143,6 +143,12 @@
       "url": "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/blob/main/SOURCES.md#reading-preferences-and-abbreviation-aliases-2026-11-13",
       "accessed": "2026-11-13",
       "role": "First-party policy: paired contextual years, configurable single-letter unit readings, plain dollar/yuan names for bare symbols, and explicit missing-dot/time-unit aliases. Existing primary numeral, grammar, abbreviation and unit sources remain applicable; no new upstream implementation or dataset copied."
+    },
+    "time-alias-policy": {
+      "title": "Norwegian time abbreviations and conservative alias policy",
+      "url": "https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/forkortelser/",
+      "accessed": "2026-11-13",
+      "role": "Re-inspected web reference: min, s/sek, t meaning both time and tonn, and km/t/km/h. Mutable reference-only, no byte hash or copied implementation. Default-off English time aliases and free-text t review are first-party policy documented in SOURCES.md."
     }
   },
   "artifacts": {
@@ -188,7 +194,7 @@
       ]
     },
     "units.py": {
-      "sha256": "ae824cfa010ea62ffb4dd81f3efe44a461f0f20b858880854338d63b7b3ff354",
+      "sha256": "da171fb37c1efc334d5645bf8e1ccd36d393b621556fccf99f30546f1575f133",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -201,7 +207,8 @@
         "sprakradet-ordinals",
         "government-unit-pdf-bytes",
         "cldr-no-49",
-        "reading-preferences"
+        "reading-preferences",
+        "time-alias-policy"
       ]
     },
     "currencies.py": {
@@ -238,7 +245,7 @@
       ]
     },
     "normalizer.py": {
-      "sha256": "26dce90429a90a64a6466ec0f078bf973695fcd16b1ccf4a172e3d345adfc416",
+      "sha256": "b097b192040d7c5d37594debf429c765f53bce6c90c7e6d5405bb0ebc624ca44",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
@@ -250,7 +257,8 @@
         "cldr-license-49",
         "scientific-policy",
         "scientific-ndla",
-        "reading-preferences"
+        "reading-preferences",
+        "time-alias-policy"
       ]
     },
     "scientific.py": {
@@ -268,13 +276,14 @@
       ]
     },
     "__main__.py": {
-      "sha256": "27c15a12ba45926b12d9a51ebf4690bb85784761ff6782db34ede07d86210db6",
+      "sha256": "85ef525d77841457f53a2f90ba9c26b99ede742799968c49246e86cc4f2f16fb",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
         "existing-provenance",
         "project-policy",
-        "reading-preferences"
+        "reading-preferences",
+        "time-alias-policy"
       ]
     },
     "provenance.py": {

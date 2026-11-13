@@ -64,6 +64,10 @@ It does not disable scientific-number notation, explicit compound units,
 temperature symbols `°C`/`°F`, or everyday units `m`, `g`, `kg`, `mg`, `l`, `s`, `h`.
 The uppercase litre alias `L` is also retained. `K` follows the scientific switch.
 
+`--english-unit-aliases` opts into `mins`, `hr`/`hrs`, and `sec`/`secs` after
+quantities. It is **off by default**, independently of `--scientific-units`.
+In Python, use `NorwegianNormalizer(english_unit_aliases=True)`.
+
 `--decimal-style {natural,digits}` selects decimal speech. The default `natural`
 reads `3,14` as `tre komma fjorten`; `digits` gives `tre komma en fire` for
 technical or instructional use. See the decimal policy below for leading zeros
@@ -431,12 +435,33 @@ Selected abbreviations may omit their final dot: `f.eks`, `bl.a`, `osv`, `dvs`,
 this is input tolerance, not a recommendation to omit punctuation in prose.
 Word boundaries prevent substitutions inside longer words.
 
-After a numeric quantity, `mins` means minutes, `hr`/`hrs` hours, and `sec`/`secs`
-seconds. These aliases use Norwegian names and singular/plural agreement:
+English-style `mins`, `hr`/`hrs`, and `sec`/`secs` are **not standard Norwegian
+abbreviations**. Numeric quantities using them remain unchanged and flagged by
+default, including fractions, ranges, scientific notation and compound units.
+Enable `english_unit_aliases=True` (CLI `--english-unit-aliases`) to accept them.
+With that option, the aliases use Norwegian names and singular/plural agreement:
 `2 mins, 1 hr og 2 secs` → Bokmål `to minutter, en time og to sekunder`,
-Nynorsk `to minutt, ein time og to sekund`. They remain enabled with scientific
-units disabled. Bare `mins`, `hrs`, and `secs` without a quantity remain prose;
-the aliases do not enable general English-language normalization.
+Nynorsk `to minutt, ein time og to sekund`. The option is independent of the
+scientific-unit setting. Bare aliases without a quantity remain prose; enabling
+them does not enable general English-language normalization.
+
+Standard Norwegian forms `min`, `s`, `sek`, and the international hour symbol
+`h` remain enabled. They have no plural suffix: `5 min`, not `5 mins`.
+The Norwegian abbreviation `t` can mean either *time* or *tonn*, as recorded by
+[Språkrådet](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/forkortelser/).
+Therefore `2 t`, `1/2 t`, `2–3 t`, `1.2e-3 t` and compounds containing a `t`
+factor (such as `t/h`, `t/min`, `m/t`) remain unchanged and flagged, in every mode.
+Use `h` for hours or write `tonn` for tonnes. The established speed alias `km/t`
+remains supported. This is explicit syntax policy, not inference from prose.
+Bare `t` without a quantity remains a letter; `T` (tesla) and prefixed `mt`
+(millitonn) retain their separate, case-sensitive meanings.
+
+```python
+assert NorwegianNormalizer().analyze("2 hrs").needs_review
+assert NorwegianNormalizer(english_unit_aliases=True).normalize("2 hrs") == "to timer"
+assert NorwegianNormalizer(language="nn", english_unit_aliases=True).normalize("2 hrs") == "to timar"
+assert NorwegianNormalizer().analyze("2 t").needs_review
+```
 
 ## Foreign currencies, input locale and code-switching
 
@@ -607,6 +632,10 @@ hand-audited rows** covering every named quantity/unit in tables 1–5 and 7–9
 the hectare/decare definitions, and the later flow-rate expressions. Table 6's
 prefixes are tested separately. Each row has independently written Bokmål and
 Nynorsk expectations; CI exercises the complete inventory in both languages.
+The low-level SI unit parser retains the PDF's tonne readings for `t`, `t/h`
+and `t/min`, but the free-text normalizer now flags these three inventory forms
+for review because Norwegian `t` also means hours. Tests verify both the
+underlying unit inventory and this conservative free-text behavior.
 
 | PDF coverage | Supported notation / examples |
 | --- | --- |

@@ -188,8 +188,13 @@ def _atom(symbol: str, language: str = "nb") -> tuple[UnitReading, int]:
     return reading, exponent
 
 
-def parse_unit(symbol: str, *, language: str = "nb") -> UnitReading:
+def parse_unit(symbol: str, *, language: str = "nb", english_unit_aliases: bool = False) -> UnitReading:
     get_profile(language)
+    if not isinstance(english_unit_aliases, bool):
+        raise ValueError("english_unit_aliases must be a bool")
+    if not english_unit_aliases and any(token in {"mins", "hr", "hrs", "sec", "secs"}
+                                       for token in re.findall(r"[A-Za-zµμΩΩℓ°]+", symbol)):
+        raise ValueError("English time-unit alias requires english_unit_aliases=True")
     normalized = re.sub(r"[ \t]+", "", symbol)
     if normalized in SPECIAL_COMPOUNDS:
         return SPECIAL_COMPOUNDS[normalized]

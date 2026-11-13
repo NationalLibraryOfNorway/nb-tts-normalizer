@@ -1,5 +1,22 @@
 # Sources and implementation provenance
 
+## Optional English aliases and ambiguous t (2026-11-13)
+
+Version 0.10.0 makes `mins`, `hr`, `hrs`, `sec`, and `secs` opt-in through
+`english_unit_aliases=True`; default free-text quantities containing them are
+preserved for review. This supersedes their enabled-by-default introduction in
+0.9.0. The aliases are input tolerance, not standard Norwegian abbreviations.
+
+[Språkrådet's abbreviation list](https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/forkortelser/),
+re-inspected via the web interface on 2026-11-13, lists `min`, `s`/`sek`, and
+both *time* and *tonn* for `t`, as well as `km/t`/`km/h` speed forms. The source
+is a mutable reference-only page; no document bytes or upstream implementation
+are redistributed. Preserving ambiguous `t` quantities and compound factors
+while retaining the established `km/t` alias is first-party conservative policy.
+The free-text guard is independent of scientific-unit and English-alias settings.
+The low-level SI parser still represents the historical PDF's tonne units;
+inventory tests separately assert their guarded free-text behavior.
+
 ## Reading preferences and abbreviation aliases (2026-11-13)
 
 Version 0.9.0 implements user-requested first-party reading policies: contextual

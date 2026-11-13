@@ -101,9 +101,9 @@ class ReadingOptionsTests(unittest.TestCase):
         for lang, one, neuter in (("nb", "en", "ett"), ("nn", "ein", "eitt")):
             self.check("f.eks 2 mins, bl.a 3 hrs og pga kø",
                        "for eksempel to minutter, blant annet tre timer og på grunn av kø" if lang == "nb" else
-                       "for eksempel to minutt, blant anna tre timar og på grunn av kø", language=lang)
-            self.check("1 hr og 1 sec", f"{one} time og {neuter} sekund", language=lang)
-            self.check("2 secs", "to sekunder" if lang == "nb" else "to sekund", language=lang)
+                       "for eksempel to minutt, blant anna tre timar og på grunn av kø", language=lang, english_unit_aliases=True)
+            self.check("1 hr og 1 sec", f"{one} time og {neuter} sekund", language=lang, english_unit_aliases=True)
+            self.check("2 secs", "to sekunder" if lang == "nb" else "to sekund", language=lang, english_unit_aliases=True)
             self.check("F.eks. kaffe, osv.", "for eksempel kaffe, " + ("og så videre." if lang == "nb" else "og så vidare."), language=lang)
             self.check("mins hrs secs", "mins hrs secs", language=lang)
             self.check("f.eksperiment", "f.eksperiment", language=lang)

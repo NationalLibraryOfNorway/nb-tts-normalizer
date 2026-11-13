@@ -128,7 +128,8 @@ class NorwegianNormalizer:
                  two_digit_year_pivot: int = 50, channels: Mapping[str, str] | None = None,
                  currency_locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None,
                  decimal_style: str = "natural", language: str = "nb",
-                 scientific_units: bool = True, year_style: str = "pairs"):
+                 scientific_units: bool = True, year_style: str = "pairs",
+                 english_unit_aliases: bool = False):
         self.profile = get_profile(language)
         self.language = self.profile.code
         if not isinstance(scientific_units, bool):
@@ -136,6 +137,9 @@ class NorwegianNormalizer:
         if year_style not in ("pairs", "traditional"):
             raise ValueError("year_style must be pairs or traditional")
         self.scientific_units = scientific_units
+        if not isinstance(english_unit_aliases, bool):
+            raise ValueError("english_unit_aliases must be a bool")
+        self.english_unit_aliases = english_unit_aliases
         self.year_style = year_style
         if not 0 <= two_digit_year_pivot <= 100:
             raise ValueError("two_digit_year_pivot must be in 0..100")
@@ -162,11 +166,17 @@ class NorwegianNormalizer:
         fraction = partial(spoken_readings.fraction, language=self.language)
         version = partial(spoken_readings.version, language=self.language)
         def parse_unit(symbol: str):
+            # t can mean time or tonn in Norwegian. Keep the established km/t
+            # speed alias, but do not infer a meaning for other t factors.
+            if ("t" in re.findall(r"[A-Za-zµμΩΩℓ°]+", symbol)
+                    and re.sub(r"[ \t]+", "", symbol) != "km/t"):
+                raise ValueError("ambiguous t: time or tonn; use h for hours or write tonn")
             if (not self.scientific_units and len(symbol) == 1 and symbol.isascii()
                     and symbol.isalpha() and symbol not in "mglLsh"):
                 name = letter(symbol)
                 return unit_readings.UnitReading(name, name)
-            return unit_readings.parse_unit(symbol, language=self.language)
+            return unit_readings.parse_unit(symbol, language=self.language,
+                                            english_unit_aliases=self.english_unit_aliases)
         date_fields = partial(_date_fields, language=self.language, year_style=self.year_style)
         date_words = partial(_date, language=self.language, year_style=self.year_style)
         numeric_date_words = partial(_numeric_date, language=self.language, year_style=self.year_style)

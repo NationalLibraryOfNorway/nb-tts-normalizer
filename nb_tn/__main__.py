@@ -17,6 +17,8 @@ def main():
                         help="Read two-digit fractional parts as whole numbers (default: natural), or digit by digit")
     parser.add_argument("--scientific-units", action=argparse.BooleanOptionalAction, default=True,
                         help="Expand single-letter physical units (default: enabled); everyday units remain enabled")
+    parser.add_argument("--english-unit-aliases", action=argparse.BooleanOptionalAction, default=False,
+                        help="Accept mins, hr/hrs and sec/secs after quantities (default: disabled)")
     parser.add_argument("--year-style", choices=("pairs", "traditional"), default="pairs",
                         help="Read four-digit contextual years in pairs (default) or use the previous mixed style")
     parser.add_argument("--currency-locale", choices=("nb-NO", "en-US"), default="nb-NO",
@@ -31,7 +33,8 @@ def main():
         symbols["¥"] = args.yen_currency
     normalizer = NorwegianNormalizer(currency_locale=args.currency_locale, symbol_currencies=symbols,
                                      decimal_style=args.decimal_style, language=args.language,
-                                     scientific_units=args.scientific_units, year_style=args.year_style)
+                                     scientific_units=args.scientific_units, year_style=args.year_style,
+                                     english_unit_aliases=args.english_unit_aliases)
     result = normalizer.analyze(args.text if args.text is not None else sys.stdin.read())
     if args.json:
         print(json.dumps({**asdict(result), "needs_review": result.needs_review}, ensure_ascii=False, indent=2))

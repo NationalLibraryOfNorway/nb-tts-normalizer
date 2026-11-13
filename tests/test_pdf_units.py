@@ -29,7 +29,15 @@ class PdfUnitTests(unittest.TestCase):
         for row in inventory["rows"]:
             for language in ("nb", "nn"):
                 with self.subTest(quantity=row["quantity"], language=language):
-                    self.check("2 " + row["unit"], "to " + row[language], language)
+                    # The SI parser can represent tonnes, but free-text t is
+                    # ambiguous with the Norwegian abbreviation for hours.
+                    if row["unit"] in ("t", "t/h", "t/min"):
+                        self.assertEqual(parse_unit(row["unit"], language=language).plural, row[language])
+                        report = NorwegianNormalizer(language=language).analyze("2 " + row["unit"])
+                        self.assertEqual(report.text, "2 " + row["unit"])
+                        self.assertTrue(report.needs_review)
+                    else:
+                        self.check("2 " + row["unit"], "to " + row[language], language)
 
     def test_all_pdf_prefixes_and_special_named_multiples(self):
         prefixes = {
