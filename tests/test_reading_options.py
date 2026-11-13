@@ -26,8 +26,8 @@ class ReadingOptionsTests(unittest.TestCase):
         for lang, one in (("nb", "en"), ("nn", "ein")):
             for value, expected in {
                 1000: "ti hundre", 1001: f"ti null {one}", 1099: "ti nittini",
-                1905: "nitten null fem", 1984: "nitten åttifire", 2000: "tjue hundre",
-                2001: f"tjue null {one}", 2005: "tjue null fem", 2010: "tjue ti",
+                1905: "nitten null fem", 1984: "nitten åttifire", 2000: "to tusen",
+                2001: f"to tusen og {one}", 2005: "to tusen og fem", 2010: "tjue ti",
                 2026: "tjue tjueseks", 2100: f"tjue{one} hundre", 9999: "nittini nittini",
             }.items():
                 with self.subTest(lang=lang, value=value):

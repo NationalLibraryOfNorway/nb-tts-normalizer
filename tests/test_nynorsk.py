@@ -75,7 +75,7 @@ class NynorskTests(unittest.TestCase):
                               1007: "tusen og sjuande"}.items():
             self.assertEqual(ordinal(number, language="nn"), words)
         self.assertEqual(year(1901, language="nn"), "nitten null ein")
-        self.assertEqual(year(2001, language="nn"), "tjue null ein")
+        self.assertEqual(year(2001, language="nn"), "to tusen og ein")
         self.check_cases({
             "8. mai 2026": "åttande mai tjue tjueseks",
             "8 . 5 . 26": "åttande mai tjue tjueseks",

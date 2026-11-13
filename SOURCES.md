@@ -1,5 +1,28 @@
 # Sources and implementation provenance
 
+## Year cutoff and full-sentence regressions (2026-11-13)
+
+Version 0.10.1 refines the default `pairs` policy: 2000 is `to tusen`,
+2001–2009 use cardinal `to tusen og …`, and paired readings resume at 2010.
+Other centuries and `traditional` mode retain their previous behavior.
+The 2010 cutoff is a user-requested project policy, not a universal usage claim.
+
+Primary references inspected via the web interface on 2026-11-13:
+
+- [NRK: Uttale av årstal](https://sprak.nrk.no/rettleiing/arstal/)
+  recommends the short form, explaining that both readings of 2014 had been
+  accepted. It does not specify our exact cutoff or claim the long form is unused.
+- [Språkrådet: Rettskrivningsvedtak etter 2012](https://sprakradet.no/nyord-og-rettskrivingsendringer/normering-av-norsk/rettskrivingsvedtak/rettskrivningsvedtak-etter-2012/)
+  records the 2014 decision allowing the `tjue-` form alongside the longer form
+  for both Bokmål and Nynorsk.
+
+These are mutable reference-only pages, not byte-pinned snapshots. No source
+text, recordings or external implementation are redistributed. The spaced TTS
+rendering `tjue tjueseks` is retained for the short reading `tjuetjueseks`.
+Hand-authored full-sentence regression tests cover both languages, scientific
+units on/off, ordinary units, plain currency symbols, exact review spans, and
+English-alias opt-in. Audio evaluation remains deferred.
+
 ## Optional English aliases and ambiguous t (2026-11-13)
 
 Version 0.10.0 makes `mins`, `hr`, `hrs`, `sec`, and `secs` opt-in through

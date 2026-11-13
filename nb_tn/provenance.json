@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), PDF-wide unit inventory (0.7.0), and scientific-number support with unit-context and temperature regression tests (0.8.0, 2026-11-13). Historical investigation remains in SOURCES.md. Reading preferences, plain symbol currency names and abbreviation aliases updated in 0.9.0 (2026-11-13). Optional English aliases and ambiguous-t review updated in 0.10.0 (2026-11-13).",
+  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), PDF-wide unit inventory (0.7.0), and scientific-number support with unit-context and temperature regression tests (0.8.0, 2026-11-13). Historical investigation remains in SOURCES.md. Reading preferences, plain symbol currency names and abbreviation aliases updated in 0.9.0 (2026-11-13). Optional English aliases and ambiguous-t review updated in 0.10.0 (2026-11-13). The 2000–2009 year exception and full-sentence regression examples were added in 0.10.1 (2026-11-13).",
   "implementation_credit": "National Library of Norway, Språkmodeller, with OpenAI Codex assistance.",
   "limitations": "Hashes verify inspected bytes and artifact identity, not authorship, linguistic correctness, native-speaker review, acoustic performance or continued upstream availability. Mutable reference-only pages are not immutable snapshots.",
   "sources": {
@@ -149,6 +149,18 @@
       "url": "https://sprakradet.no/godt-og-korrekt-sprak/rettskriving-og-grammatikk/forkortelser/",
       "accessed": "2026-11-13",
       "role": "Re-inspected web reference: min, s/sek, t meaning both time and tonn, and km/t/km/h. Mutable reference-only, no byte hash or copied implementation. Default-off English time aliases and free-text t review are first-party policy documented in SOURCES.md."
+    },
+    "nrk-year-reading": {
+      "title": "NRK: Uttale av årstal",
+      "url": "https://sprak.nrk.no/rettleiing/arstal/",
+      "accessed": "2026-11-13",
+      "role": "Primary guidance inspected via web: recommends short-form 2014 while recognizing both forms. Does not mandate the project's 2010 cutoff. Mutable reference-only; no source bytes hash-pinned or content copied."
+    },
+    "sprakradet-year-forms": {
+      "title": "Språkrådet: Rettskrivningsvedtak etter 2012",
+      "url": "https://sprakradet.no/nyord-og-rettskrivingsendringer/normering-av-norsk/rettskrivingsvedtak/rettskrivningsvedtak-etter-2012/",
+      "accessed": "2026-11-13",
+      "role": "Primary 2014 decision inspected via web: tjue- year forms permitted alongside the long form in both languages. Mutable reference-only, not byte-pinned. The 2000–2009 cardinal exception and spaced TTS representation are first-party policy documented in SOURCES.md."
     }
   },
   "artifacts": {
@@ -171,7 +183,7 @@
       ]
     },
     "numbers.py": {
-      "sha256": "d59e7c1e918366743bcc4c09bc4dac586ec9f5041f9c836a8af3c9d46d896e30",
+      "sha256": "d6695bceee18c9c3c6c2281ff0dcb92f9adffb481ca39ba53dd64741fd270580",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
@@ -179,7 +191,9 @@
         "nn-grammar",
         "nn-dictionary",
         "project-policy",
-        "reading-preferences"
+        "reading-preferences",
+        "nrk-year-reading",
+        "sprakradet-year-forms"
       ]
     },
     "readings.py": {

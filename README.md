@@ -55,7 +55,8 @@ remains the default. Nynorsk (`nn`) is explicit; this is not language detection
 or translation of surrounding prose. See the Nynorsk examples below.
 
 `--year-style {pairs,traditional}` defaults to `pairs`: contextual four-digit
-years are read as two groups (`2026` → `tjue tjueseks`). Use `traditional` for
+years are read as two groups (`2026` → `tjue tjueseks`), except 2000–2009,
+which use `to tusen` / `to tusen og …`. Use `traditional` for
 the previous mixed policy (paired 1100–1999, cardinal otherwise).
 
 `--scientific-units` is **enabled by default**. `--no-scientific-units` spells
@@ -361,7 +362,7 @@ categories are supported by the Nynorsk profile with localized generated words.
 | `1. mai`, `01.05.2026`, `2026-05-01` | Ordinal day, Norwegian month name, optional year; calendar validity checked |
 | `1 . 5 . 2026`, `1/5/2026`, `1-5-26`, `1mai2026`, `1. sept. 2026` | Tolerate spacing, separators, abbreviated months, missing dots and two-digit years |
 | `01.05`, `1.–3. mai`, `1.-3.5.2026` | Day/month dates and date ranges; Norwegian ordering |
-| `året 1998`, date year `1998` | `nitten nittiåtte`; 1905 uses `nitten null fem`; 2005 uses `tjue null fem` |
+| `året 1998`, date year `1998` | `nitten nittiåtte`; 1905 uses `nitten null fem`; 2005 uses `to tusen og fem`; 2010 uses `tjue ti` |
 | `kl. 17:03`, `klokken 09.05`, `kl. 0905`, `12:30` | Digital clock reading; no colloquial `halv`/`kvart` forms |
 | `kl. 09.00-10.30`, `09:00—10:30` | Clock ranges with `til` |
 | `10–15`, `10-15 km`, `10—15 %`, `kr 10−15` | Numeric ranges with ASCII, Unicode hyphens/dashes, and minus-shaped separators |
@@ -404,16 +405,24 @@ a recognized date or is introduced by `år`/`året`.
 
 The paired-year default applies to recognized dates and `år`/`året` contexts,
 not arbitrary four-digit numbers, quantities, identifiers or version components.
-Years 1000–9999 use two groups; exact centuries end in `hundre`, and final groups
-01–09 include `null`. Years below 1000 keep their cardinal reading.
+Years 1000–9999 generally use two groups; exact centuries end in `hundre`, and
+final groups 01–09 include `null`. **2000–2009 are an explicit exception:**
+`2000` → `to tusen`, `2006` → `to tusen og seks`. Paired readings resume at
+2010 (`tjue ti`, `tjue seksten`, `tjue tjueseks`). Years below 1000 keep their
+cardinal reading. This change applies to both Bokmål and Nynorsk.
 
 | Year | Bokmål | Nynorsk |
 |---|---|---|
 | 1000 | ti hundre | same |
 | 1001 | ti null en | ti null ein |
 | 1984 | nitten åttifire | same |
-| 2000 | tjue hundre | same |
-| 2005 | tjue null fem | same |
+| 2000 | to tusen | same |
+| 2001 | to tusen og en | to tusen og ein |
+| 2005 | to tusen og fem | same |
+| 2006 | to tusen og seks | same |
+| 2009 | to tusen og ni | same |
+| 2010 | tjue ti | same |
+| 2016 | tjue seksten | same |
 | 2026 | tjue tjueseks | same |
 | 2101 | tjueen null en | tjueein null ein |
 | 9999 | nittini nittini | same |
@@ -421,6 +430,14 @@ Years 1000–9999 use two groups; exact centuries end in `hundre`, and final gro
 This is the project's requested reading preference, not a claim that every
 paired form is universally preferred. `year_style="traditional"` restores the
 previous behavior. Calendar validation and the two-digit-year pivot are unchanged.
+
+[NRK's year-pronunciation guidance](https://sprak.nrk.no/rettleiing/arstal/)
+recommends the short form, referring to the acceptance of both forms for 2014.
+It does not mandate our exact 2010 cutoff, which is a project consistency choice.
+The TTS representation retains spaces (`tjue tjueseks`), corresponding to the
+short reading written `tjuetjueseks`; this is spoken-text preparation, not a
+general orthographic formatter. We do not claim that the longer reading has
+disappeared from use. `year_style="traditional"` still allows it after 2010.
 
 ```python
 plain_letters = NorwegianNormalizer(scientific_units=False, year_style="pairs")
@@ -857,6 +874,94 @@ substitute new names into old text. Channel readings are curated application
 choices, not broadcaster-certified phonetic transcriptions. Names such as
 bare `P4` may also mean something else in scientific text; use `channels={}` or
 a domain-specific dictionary where necessary.
+
+### Full-sentence policy comparisons (0.10.1)
+
+These exact outputs are regression-tested in `tests/test_full_sentence_policies.py`.
+Unless noted, the settings are `year_style="pairs"`, `scientific_units=True`,
+`english_unit_aliases=False`, and `decimal_style="natural"`.
+
+**Bokmål input:**
+
+```text
+Den 8. mai 2026 målte vi 1,2 × 10⁻³ A, 230 V og 60 W ved −5 °C; kontrollen kostet $20 og ¥1,25 etter § 2-1.
+```
+
+Scientific units on (default), no review issues:
+
+```text
+Den åttende mai tjue tjueseks målte vi en komma to ganger ti opphøyd i minus tre ampere, to hundre og tretti volt og seksti watt ved minus fem grader celsius; kontrollen kostet tjue dollar og en komma tjuefem yuan etter paragraf to en.
+```
+
+Scientific units off (`scientific_units=False`), no review issues:
+
+```text
+Den åttende mai tjue tjueseks målte vi en komma to ganger ti opphøyd i minus tre a, to hundre og tretti ve og seksti dobbeltve ved minus fem grader celsius; kontrollen kostet tjue dollar og en komma tjuefem yuan etter paragraf to en.
+```
+
+**Nynorsk input:**
+
+```text
+Den 8. mai 2026 målte vi 1,2 × 10⁻³ A, 230 V og 60 W ved −5 °C; kontrollen kosta $20 og ¥1,25 etter § 2-1.
+```
+
+Scientific units on (default), no review issues:
+
+```text
+Den åttande mai tjue tjueseks målte vi ein komma to gonger ti opphøgd i minus tre ampere, to hundre og tretti volt og seksti watt ved minus fem grader celsius; kontrollen kosta tjue dollar og ein komma tjuefem yuan etter paragraf to ein.
+```
+
+Scientific units off, no review issues:
+
+```text
+Den åttande mai tjue tjueseks målte vi ein komma to gonger ti opphøgd i minus tre a, to hundre og tretti ve og seksti dobbeltve ved minus fem grader celsius; kontrollen kosta tjue dollar og ein komma tjuefem yuan etter paragraf to ein.
+```
+
+**Everyday units and the revised 2000s reading**, with either scientific setting:
+
+```text
+Input (both languages):
+I året 2005 målte vi 2 m, 3 kg og 5 mg i løpet av 10 s og 2 h.
+Bokmål:
+I året to tusen og fem målte vi to meter, tre kilo og fem milligram i løpet av ti sekunder og to timer.
+Nynorsk:
+I året to tusen og fem målte vi to meter, tre kilo og fem milligram i løpet av ti sekund og to timar.
+```
+
+**Default review flags:** only unresolved spans are preserved; recognized
+currency amounts in the same sentence still normalize. All rows below have
+`needs_review=True`, with either scientific-unit setting.
+
+| Language | Input | Actual output | Flagged spans |
+|---|---|---|---|
+| Bokmål | `Turen tok 2 t og kostet $20.` | `Turen tok 2 t og kostet tjue dollar.` | `2 t`: time/tonn ambiguity |
+| Nynorsk | `Turen tok 2 t og kosta $20.` | `Turen tok 2 t og kosta tjue dollar.` | `2 t`: time/tonn ambiguity |
+| Bokmål | `Turen tok 2 hrs og kostet ¥20.` | `Turen tok 2 hrs og kostet tjue yuan.` | `2 hrs`: English alias disabled |
+| Nynorsk | `Turen tok 2 hrs og kosta ¥20.` | `Turen tok 2 hrs og kosta tjue yuan.` | `2 hrs`: English alias disabled |
+| Both | `Pausen varte 5 mins og 30 secs.` | `Pausen varte 5 mins og 30 secs.` | `5 mins`, `30 secs`: English aliases disabled |
+
+Enabling `english_unit_aliases=True` removes the English-alias issues, but does
+not resolve ambiguous `t`. Actual enabled outputs:
+
+```text
+Bokmål:
+Turen tok to timer og kostet tjue yuan.
+Pausen varte fem minutter og tretti sekunder.
+Nynorsk:
+Turen tok to timar og kosta tjue yuan.
+Pausen varte fem minutt og tretti sekund.
+```
+
+Standard time forms need no opt-in and produce no review issues:
+
+```text
+Input (both languages):
+Turen tok 2 h, og pausen varte 5 min og 30 sek.
+Bokmål:
+Turen tok to timer, og pausen varte fem minutter og tretti sekunder.
+Nynorsk:
+Turen tok to timar, og pausen varte fem minutt og tretti sekund.
+```
 
 ## Review and limitations
 

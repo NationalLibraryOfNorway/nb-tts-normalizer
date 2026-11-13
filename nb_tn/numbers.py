@@ -85,6 +85,11 @@ def year(number: int, *, language: str = "nb", style: str = "pairs") -> str:
         raise ValueError("year_style must be pairs or traditional")
     if not 1 <= number <= 9999:
         raise ValueError("year outside 1..9999")
+    # Project cutoff: retain familiar cardinal readings for 2000–2009;
+    # short paired readings resume at 2010. NRK supports the short form,
+    # but the exact cutoff is our policy, not an NRK mandate.
+    if 2000 <= number <= 2009:
+        return cardinal(number, language=language)
     if (1000 <= number <= 9999 if style == "pairs" else 1100 <= number <= 1999):
         century, rest = divmod(number, 100)
         if not rest:
