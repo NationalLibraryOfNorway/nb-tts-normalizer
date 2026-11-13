@@ -75,21 +75,21 @@ class NynorskTests(unittest.TestCase):
                               1007: "tusen og sjuande"}.items():
             self.assertEqual(ordinal(number, language="nn"), words)
         self.assertEqual(year(1901, language="nn"), "nitten null ein")
-        self.assertEqual(year(2001, language="nn"), "to tusen og ein")
+        self.assertEqual(year(2001, language="nn"), "tjue null ein")
         self.check_cases({
-            "8. mai 2026": "åttande mai to tusen og tjueseks",
-            "8 . 5 . 26": "åttande mai to tusen og tjueseks",
-            "2026-05-08": "åttande mai to tusen og tjueseks",
-            "8/5/2026": "åttande mai to tusen og tjueseks",
-            "8mai2026": "åttande mai to tusen og tjueseks",
-            "8. sept. 2026": "åttande september to tusen og tjueseks",
-            "dato 08052026": "dato åttande mai to tusen og tjueseks",
-            "dato 20260508": "dato åttande mai to tusen og tjueseks",
+            "8. mai 2026": "åttande mai tjue tjueseks",
+            "8 . 5 . 26": "åttande mai tjue tjueseks",
+            "2026-05-08": "åttande mai tjue tjueseks",
+            "8/5/2026": "åttande mai tjue tjueseks",
+            "8mai2026": "åttande mai tjue tjueseks",
+            "8. sept. 2026": "åttande september tjue tjueseks",
+            "dato 08052026": "dato åttande mai tjue tjueseks",
+            "dato 20260508": "dato åttande mai tjue tjueseks",
             "den 8/5": "den åttande mai",
-            "29. februar 2024": "tjueniande februar to tusen og tjuefire",
-            "8.–9. mai 2026": "åttande til niande mai to tusen og tjueseks",
-            "8. mai–9. juni 2026": "åttande mai til niande juni to tusen og tjueseks",
-            "08.05.2026–09.05.2026": "åttande mai to tusen og tjueseks til niande mai to tusen og tjueseks",
+            "29. februar 2024": "tjueniande februar tjue tjuefire",
+            "8.–9. mai 2026": "åttande til niande mai tjue tjueseks",
+            "8. mai–9. juni 2026": "åttande mai til niande juni tjue tjueseks",
+            "08.05.2026–09.05.2026": "åttande mai tjue tjueseks til niande mai tjue tjueseks",
             "året 1901": "året nitten null ein",
             "8. gong": "åttande gong",
         })
@@ -119,7 +119,7 @@ class NynorskTests(unittest.TestCase):
             "NOK 1,01": "ei krone og eitt øre", "1 kr 1 øre": "ei krone og eitt øre",
             "-1 kr 1 øre": "minus ei krone og eitt øre",
             "kr 150,-": "hundre og femti kroner",
-            "$1,01": "ein amerikansk dollar og ein cent", "¥1,21": "ein komma tjueein kinesiske yuan",
+            "$1,01": "ein dollar og ein cent", "¥1,21": "ein komma tjueein yuan",
             "EUR 1,01": "ein euro og ein cent", "GBP 1,01": "eitt britisk pund og ein penny",
             "SEK 1,01": "ei svensk krone og eitt øre", "DKK 1": "ei dansk krone",
             "CAD 1": "ein kanadisk dollar", "AUD 1": "ein australsk dollar",
@@ -131,7 +131,7 @@ class NynorskTests(unittest.TestCase):
             "$1 CAD": "ein kanadisk dollar", "¥1 JPY": "ein japansk yen",
             "2 000 000 kr": "to millionar kroner",
         })
-        self.check_cases({"$1.01": "ein amerikansk dollar og ein cent",
+        self.check_cases({"$1.01": "ein dollar og ein cent",
                           "CHF 1.21": "ein komma tjueein sveitsiske franc"}, currency_locale="en-US")
         self.check_cases({"$1": "ein australsk dollar", "¥1": "ein japansk yen"},
                          symbol_currencies={"$": "AUD", "¥": "JPY"})
@@ -203,11 +203,11 @@ class NynorskTests(unittest.TestCase):
     def test_full_sentences(self):
         self.check_cases({
             "Etter § 2-1 skal 1,75 m kabel koste kr 150,50 ved levering 8. mai 2026.":
-                "Etter paragraf to ein skal ein komma syttifem meter kabel koste hundre og femti kroner og femti øre ved levering åttande mai to tusen og tjueseks.",
+                "Etter paragraf to ein skal ein komma syttifem meter kabel koste hundre og femti kroner og femti øre ved levering åttande mai tjue tjueseks.",
             "Den 8 . 5 . 2026 vart 75 m2 leigde ut for $125,75, med eit tillegg på 3,14 % etter §§ 3–5.":
-                "Den åttande mai to tusen og tjueseks vart syttifem kvadratmeter leigde ut for hundre og tjuefem amerikanske dollar og syttifem cent, med eit tillegg på tre komma fjorten prosent etter paragrafane tre til fem.",
+                "Den åttande mai tjue tjueseks vart syttifem kvadratmeter leigde ut for hundre og tjuefem dollar og syttifem cent, med eit tillegg på tre komma fjorten prosent etter paragrafane tre til fem.",
             "Etter § 7 skal prisen 8. juni 2026 vere ¥1,21 per 1,75 kWh, medan toleransen er 0,05 %.":
-                "Etter paragraf sju skal prisen åttande juni to tusen og tjueseks vere ein komma tjueein kinesiske yuan per ein komma syttifem kilowattimar, medan toleransen er null komma null fem prosent.",
+                "Etter paragraf sju skal prisen åttande juni tjue tjueseks vere ein komma tjueein yuan per ein komma syttifem kilowattimar, medan toleransen er null komma null fem prosent.",
         })
 
     def test_invalid_and_ambiguous_forms_remain_whole_in_both_languages(self):
@@ -260,7 +260,7 @@ class NynorskTests(unittest.TestCase):
             (["--language", "nb"], "NOK 1,01", "en krone og ett øre", 0),
             (["--language", "nn"], "NOK 1,01", "ei krone og eitt øre", 0),
             (["--language", "nn", "--decimal-style", "digits"], "1,21", "ein komma to ein", 0),
-            (["--language", "nn", "--currency-locale", "en-US"], "$1.01", "ein amerikansk dollar og ein cent", 0),
+            (["--language", "nn", "--currency-locale", "en-US"], "$1.01", "ein dollar og ein cent", 0),
             (["--language", "nn"], "31. februar 2026", "31. februar 2026", 2),
         ):
             result = subprocess.run([sys.executable, "-m", "nb_tn", "--strict", "--json", *args],

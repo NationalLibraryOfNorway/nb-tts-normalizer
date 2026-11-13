@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), PDF-wide unit inventory (0.7.0), and scientific-number support with unit-context and temperature regression tests (0.8.0, 2026-11-13). Historical investigation remains in SOURCES.md.",
+  "scope": "Nynorsk support and shared renderers (0.6.0), physical-power readings (0.6.1), PDF-wide unit inventory (0.7.0), and scientific-number support with unit-context and temperature regression tests (0.8.0, 2026-11-13). Historical investigation remains in SOURCES.md. Reading preferences, plain symbol currency names and abbreviation aliases updated in 0.9.0 (2026-11-13).",
   "implementation_credit": "National Library of Norway, Språkmodeller, with OpenAI Codex assistance.",
   "limitations": "Hashes verify inspected bytes and artifact identity, not authorship, linguistic correctness, native-speaker review, acoustic performance or continued upstream availability. Mutable reference-only pages are not immutable snapshots.",
   "sources": {
@@ -137,11 +137,17 @@
       "license": "Unicode-3.0",
       "role": "Selected Norwegian unit-name metadata: bueminutt/bueminutter, buesekund/buesekunder, nautical miles, carat and mercury pressure; no upstream XML, inheritance engine or formatting implementation bundled.",
       "notice": "Copyright 2001–2026 Unicode, Inc.; LICENSES/Unicode-3.0.txt and NOTICE."
+    },
+    "reading-preferences": {
+      "title": "Project-requested reading preferences and tolerated abbreviation aliases",
+      "url": "https://github.com/NationalLibraryOfNorway/nb-tts-normalizer/blob/main/SOURCES.md#reading-preferences-and-abbreviation-aliases-2026-11-13",
+      "accessed": "2026-11-13",
+      "role": "First-party policy: paired contextual years, configurable single-letter unit readings, plain dollar/yuan names for bare symbols, and explicit missing-dot/time-unit aliases. Existing primary numeral, grammar, abbreviation and unit sources remain applicable; no new upstream implementation or dataset copied."
     }
   },
   "artifacts": {
     "profiles.py": {
-      "sha256": "dd72960ae61d96a29571079c7286e4ac2268e6d7336b45f51caf53956626a470",
+      "sha256": "b770df63dd373ec444b4af247b3247786a99193cb2bd7d0bd6e40d985fc1251c",
       "origin": "First-party profile with a small manually selected/adapted Unicode CLDR metadata subset.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -154,18 +160,20 @@
         "government-unit-draft",
         "sprakradet-ordinals",
         "government-unit-pdf-bytes",
-        "cldr-no-49"
+        "cldr-no-49",
+        "reading-preferences"
       ]
     },
     "numbers.py": {
-      "sha256": "ec9fccdf557186d54537e4f4f5b0aff6da9d78bf695b4bf55b4d298a81a41d2b",
+      "sha256": "d59e7c1e918366743bcc4c09bc4dac586ec9f5041f9c836a8af3c9d46d896e30",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
         "existing-provenance",
         "nn-grammar",
         "nn-dictionary",
-        "project-policy"
+        "project-policy",
+        "reading-preferences"
       ]
     },
     "readings.py": {
@@ -180,7 +188,7 @@
       ]
     },
     "units.py": {
-      "sha256": "e3b1c11d9bb9dba54dc61244ae98c453c54f8498dc8dba9fbe34e2146b9b9045",
+      "sha256": "ae824cfa010ea62ffb4dd81f3efe44a461f0f20b858880854338d63b7b3ff354",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -192,11 +200,12 @@
         "government-unit-draft",
         "sprakradet-ordinals",
         "government-unit-pdf-bytes",
-        "cldr-no-49"
+        "cldr-no-49",
+        "reading-preferences"
       ]
     },
     "currencies.py": {
-      "sha256": "3b830c04c35355991f2d6088a494729667b7daf90cf6b993130f7e2ee1cf50d1",
+      "sha256": "73a37ae8de84a023eaa879350467f130510161bc88f65ee7e1c5e7fb3eae630c",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0 AND Unicode-3.0",
       "sources": [
@@ -204,7 +213,8 @@
         "nn-dictionary",
         "cldr-nn-49",
         "cldr-license-49",
-        "project-policy"
+        "project-policy",
+        "reading-preferences"
       ]
     },
     "legal.py": {
@@ -228,7 +238,7 @@
       ]
     },
     "normalizer.py": {
-      "sha256": "1ac8a70060eb3fe54a7d2d792ac1347f8b2b9d13175fc4d6c4e447b95154cf95",
+      "sha256": "26dce90429a90a64a6466ec0f078bf973695fcd16b1ccf4a172e3d345adfc416",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
@@ -239,7 +249,8 @@
         "cldr-nn-49",
         "cldr-license-49",
         "scientific-policy",
-        "scientific-ndla"
+        "scientific-ndla",
+        "reading-preferences"
       ]
     },
     "scientific.py": {
@@ -257,12 +268,13 @@
       ]
     },
     "__main__.py": {
-      "sha256": "15c0613d6d9e63d212bfd61d20ecc11d868983c6b1196080017ecad77f29acd4",
+      "sha256": "27c15a12ba45926b12d9a51ebf4690bb85784761ff6782db34ede07d86210db6",
       "origin": "First-party implementation or refactor; no upstream normalizer code copied.",
       "license": "Apache-2.0",
       "sources": [
         "existing-provenance",
-        "project-policy"
+        "project-policy",
+        "reading-preferences"
       ]
     },
     "provenance.py": {

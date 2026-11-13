@@ -68,6 +68,9 @@ NN = LanguageProfile(
     # Only differences from shared SI names are listed. Prefixes inherit these
     # base forms; no CLDR parser or upstream data file is needed at runtime.
     MappingProxyType({
+        "mins": ("minutt", "minutt", "n"),
+        "hr": ("time", "timar", "m"), "hrs": ("time", "timar", "m"),
+        "sec": ("sekund", "sekund", "n"), "secs": ("sekund", "sekund", "n"),
         "s": ("sekund", "sekund", "n"), "sek": ("sekund", "sekund", "n"),
         "min": ("minutt", "minutt", "n"), "h": ("time", "timar", "m"),
         "Wh": ("wattime", "wattimar", "m"), "Ah": ("amperetime", "amperetimar", "m"),

@@ -79,11 +79,13 @@ def ordinal(number: int, *, language: str = "nb") -> str:
     return prefix + " og " + ordinal(rest, language=language) if rest else prefix + "de"
 
 
-def year(number: int, *, language: str = "nb") -> str:
+def year(number: int, *, language: str = "nb", style: str = "pairs") -> str:
     get_profile(language)
+    if style not in ("pairs", "traditional"):
+        raise ValueError("year_style must be pairs or traditional")
     if not 1 <= number <= 9999:
         raise ValueError("year outside 1..9999")
-    if 1100 <= number <= 1999:
+    if (1000 <= number <= 9999 if style == "pairs" else 1100 <= number <= 1999):
         century, rest = divmod(number, 100)
         if not rest:
             return cardinal(century, language=language) + " hundre"

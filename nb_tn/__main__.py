@@ -15,6 +15,10 @@ def main():
                         help="Language of generated readings (default: nb); surrounding prose is not translated")
     parser.add_argument("--decimal-style", choices=("natural", "digits"), default="natural",
                         help="Read two-digit fractional parts as whole numbers (default: natural), or digit by digit")
+    parser.add_argument("--scientific-units", action=argparse.BooleanOptionalAction, default=True,
+                        help="Expand single-letter physical units (default: enabled); everyday units remain enabled")
+    parser.add_argument("--year-style", choices=("pairs", "traditional"), default="pairs",
+                        help="Read four-digit contextual years in pairs (default) or use the previous mixed style")
     parser.add_argument("--currency-locale", choices=("nb-NO", "en-US"), default="nb-NO",
                         help="Input separators for currency amounts only; output stays Norwegian")
     parser.add_argument("--dollar-currency", choices=("USD", "CAD", "AUD"), help="Override bare $ currency (default: USD)")
@@ -26,7 +30,8 @@ def main():
     if args.yen_currency:
         symbols["¥"] = args.yen_currency
     normalizer = NorwegianNormalizer(currency_locale=args.currency_locale, symbol_currencies=symbols,
-                                     decimal_style=args.decimal_style, language=args.language)
+                                     decimal_style=args.decimal_style, language=args.language,
+                                     scientific_units=args.scientific_units, year_style=args.year_style)
     result = normalizer.analyze(args.text if args.text is not None else sys.stdin.read())
     if args.json:
         print(json.dumps({**asdict(result), "needs_review": result.needs_review}, ensure_ascii=False, indent=2))

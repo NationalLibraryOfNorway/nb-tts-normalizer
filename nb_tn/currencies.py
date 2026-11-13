@@ -182,8 +182,8 @@ class CurrencyPolicy:
         minor = int(fraction.ljust(precision, "0")) if fraction else 0
         return Amount(int(integer), minor, fraction, negative)
 
-    def amount_words(self, amount: Amount, code: str) -> str:
-        currency = self.currencies[code]
+    def amount_words(self, amount: Amount, code: str, *, currency: Currency | None = None) -> str:
+        currency = currency or self.currencies[code]
         major = currency.singular if amount.whole == 1 else currency.plural
         words = cardinal(amount.whole, gender=currency.number_gender, language=self.language)
         if amount.minor and currency.minor_singular is None:
@@ -200,20 +200,25 @@ class CurrencyPolicy:
         groups = match.groupdict()
         markers = [groups[name] for name in ("prefix", "prefix2", "suffix", "suffix2") if groups.get(name)]
         code = self._resolve(markers)
+        currency = self.currencies[code]
+        if set(markers) == {"$"} and code == "USD":
+            currency = replace(currency, singular="dollar", plural="dollar")
+        elif set(markers) == {"¥"} and code == "CNY":
+            currency = replace(currency, singular="yuan", plural="yuan")
         first = self.parse(groups["first"], code)
         if groups.get("sign"):
             if first.negative:
                 raise ValueError("duplicate negative signs on currency amount")
             first = Amount(first.whole, first.minor, first.fraction, True)
         if not groups.get("last"):
-            return self.amount_words(first, code)
+            return self.amount_words(first, code, currency=currency)
         last = self.parse(groups["last"], code)
         if not first.minor and not last.minor:
             def number(a: Amount) -> str:
                 return ("minus " if a.negative else "") + cardinal(a.whole,
-                        gender=self.currencies[code].number_gender, language=self.language)
-            return number(first) + " til " + number(last) + " " + self.currencies[code].plural
-        return self.amount_words(first, code) + " til " + self.amount_words(last, code)
+                        gender=currency.number_gender, language=self.language)
+            return number(first) + " til " + number(last) + " " + currency.plural
+        return self.amount_words(first, code, currency=currency) + " til " + self.amount_words(last, code, currency=currency)
 
     def rules(self):
         first, last = rf"(?P<first>{_AMOUNT})", rf"(?P<last>{_AMOUNT})"

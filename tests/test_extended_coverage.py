@@ -25,32 +25,32 @@ class ExtendedCoverageTests(unittest.TestCase):
     def test_tolerant_dates(self):
         self.check_cases({
             "01.05": "første mai",
-            "1 . 5 . 2026": "første mai to tusen og tjueseks",
-            "1..5..2026": "første mai to tusen og tjueseks",
-            "1/5/2026": "første mai to tusen og tjueseks",
-            "1-5-2026": "første mai to tusen og tjueseks",
-            "2026/5/1": "første mai to tusen og tjueseks",
-            "2026 - 5 - 1": "første mai to tusen og tjueseks",
-            "1.5.26": "første mai to tusen og tjueseks",
+            "1 . 5 . 2026": "første mai tjue tjueseks",
+            "1..5..2026": "første mai tjue tjueseks",
+            "1/5/2026": "første mai tjue tjueseks",
+            "1-5-2026": "første mai tjue tjueseks",
+            "2026/5/1": "første mai tjue tjueseks",
+            "2026 - 5 - 1": "første mai tjue tjueseks",
+            "1.5.26": "første mai tjue tjueseks",
             "1.5.98": "første mai nitten nittiåtte",
-            "1mai2026": "første mai to tusen og tjueseks",
+            "1mai2026": "første mai tjue tjueseks",
             "1 mai": "første mai",
-            "1.mai.2026": "første mai to tusen og tjueseks",
-            "1. sept. 2026": "første september to tusen og tjueseks",
+            "1.mai.2026": "første mai tjue tjueseks",
+            "1. sept. 2026": "første september tjue tjueseks",
             "Dato 1/5": "Dato første mai",
-            "dato 20260501": "dato første mai to tusen og tjueseks",
-            "dato 01052026": "dato første mai to tusen og tjueseks",
+            "dato 20260501": "dato første mai tjue tjueseks",
+            "dato 01052026": "dato første mai tjue tjueseks",
             "1.–3. mai": "første til tredje mai",
-            "1-3 mai 2026": "første til tredje mai to tusen og tjueseks",
+            "1-3 mai 2026": "første til tredje mai tjue tjueseks",
             "Fra 1.–3. mai er det stengt.": "Fra første til tredje mai er det stengt.",
-            "01.05.2026–03.05.2026": "første mai to tusen og tjueseks til tredje mai to tusen og tjueseks",
-            "1.-3.5.2026": "første til tredje mai to tusen og tjueseks",
-            "1.5.-3.5.2026": "første mai til tredje mai to tusen og tjueseks",
-            "1. mai-3. mai 2026": "første mai til tredje mai to tusen og tjueseks",
+            "01.05.2026–03.05.2026": "første mai tjue tjueseks til tredje mai tjue tjueseks",
+            "1.-3.5.2026": "første til tredje mai tjue tjueseks",
+            "1.5.-3.5.2026": "første mai til tredje mai tjue tjueseks",
+            "1. mai-3. mai 2026": "første mai til tredje mai tjue tjueseks",
         })
 
     def test_two_digit_years_are_deterministic_and_configurable(self):
-        self.assertEqual(self.normalizer.normalize("1.5.49"), "første mai to tusen og førtini")
+        self.assertEqual(self.normalizer.normalize("1.5.49"), "første mai tjue førtini")
         self.assertEqual(self.normalizer.normalize("1.5.50"), "første mai nitten femti")
         self.assertEqual(NorwegianNormalizer(two_digit_year_pivot=0).normalize("1.5.26"), "første mai nitten tjueseks")
 

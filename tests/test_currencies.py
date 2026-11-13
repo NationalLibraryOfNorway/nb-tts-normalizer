@@ -95,19 +95,19 @@ class CurrencyTests(unittest.TestCase):
             "$10 USD": "ti amerikanske dollar", "$10 CAD": "ti kanadiske dollar",
             "¥10 CNY": "ti kinesiske yuan", "kr 10 SEK": "ti svenske kroner",
         })
-        self.check_cases({"$12,50": "tolv amerikanske dollar og femti cent"}, symbol_currencies={"$": "USD"})
+        self.check_cases({"$12,50": "tolv dollar og femti cent"}, symbol_currencies={"$": "USD"})
         self.check_cases({"¥100": "hundre japanske yen"}, symbol_currencies={"¥": "JPY"})
         self.check_cases({"$10 CAD": "ti kanadiske dollar"}, symbol_currencies={"$": "USD"})
 
     def test_bare_symbols_default_to_us_dollars_and_chinese_yuan(self):
-        cases = {"$5": "fem amerikanske dollar", "$12,50": "tolv amerikanske dollar og femti cent",
-                 "¥100": "hundre kinesiske yuan", "¥1,25": "en komma tjuefem kinesiske yuan"}
+        cases = {"$5": "fem dollar", "$12,50": "tolv dollar og femti cent",
+                 "¥100": "hundre yuan", "¥1,25": "en komma tjuefem yuan"}
         self.check_cases(cases)
         self.check_cases(cases, symbol_currencies={})
         # A partial override must preserve the other default and not mutate
         # defaults for later independent normalizer instances.
-        self.check_cases({"$5 og ¥100": "fem kanadiske dollar og hundre kinesiske yuan"}, symbol_currencies={"$": "CAD"})
-        self.check_cases({"$5 og ¥100": "fem amerikanske dollar og hundre japanske yen"}, symbol_currencies={"¥": "JPY"})
+        self.check_cases({"$5 og ¥100": "fem kanadiske dollar og hundre yuan"}, symbol_currencies={"$": "CAD"})
+        self.check_cases({"$5 og ¥100": "fem dollar og hundre japanske yen"}, symbol_currencies={"¥": "JPY"})
         self.check_cases(cases)
 
     def test_symbol_defaults_can_still_be_disabled_for_review(self):
@@ -150,7 +150,7 @@ class CurrencyTests(unittest.TestCase):
     def test_currency_rules_do_not_steal_versions_units_dates_or_other_amounts(self):
         self.check_cases({
             "USD 1, EUR 2": "en amerikansk dollar, to euro",
-            "v1.2.3, 1.5.26 og EUR 1,05": "versjon en punkt to punkt tre, første mai to tusen og tjueseks og en euro og fem cent",
+            "v1.2.3, 1.5.26 og EUR 1,05": "versjon en punkt to punkt tre, første mai tjue tjueseks og en euro og fem cent",
             "5 MW på NRK1 koster EUR 2,50.": "fem megawatt på enn err kå en koster to euro og femti cent.",
             "1/2 kr": "en halv krone",
             "De veier 10 pounds.": "De veier ti pounds.",
@@ -176,7 +176,7 @@ class CurrencyTests(unittest.TestCase):
         self.assertFalse(report["needs_review"])
 
     def test_cli_uses_symbol_defaults_when_not_provided(self):
-        for text, expected in (("$12.50", "tolv amerikanske dollar og femti cent"), ("¥100", "hundre kinesiske yuan")):
+        for text, expected in (("$12.50", "tolv dollar og femti cent"), ("¥100", "hundre yuan")):
             with self.subTest(text=text):
                 completed = subprocess.run([sys.executable, "-m", "nb_tn", "--strict", "--json", "--currency-locale", "en-US",
                                             text], text=True, capture_output=True)

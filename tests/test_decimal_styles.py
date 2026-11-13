@@ -76,7 +76,7 @@ class DecimalStyleTests(unittest.TestCase):
             "3,14‰": "tre komma en fire promille",
             "forhold 1,75:3,14": "forhold en komma sju fem til tre komma en fire",
             "CHF 1,20": "en komma to null sveitsiske franc",
-            "¥1,25": "en komma to fem kinesiske yuan",
+            "¥1,25": "en komma to fem yuan",
             "CHF 1,20–1,75": "en komma to null sveitsiske franc til en komma sju fem sveitsiske franc",
         }, decimal_style="digits")
 

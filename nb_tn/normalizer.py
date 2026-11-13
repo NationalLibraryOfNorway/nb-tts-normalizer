@@ -15,7 +15,7 @@ from .legal import LEGAL_PATTERN, legal_reference
 from .channels import channel_pattern, channel_readings
 from . import scientific
 from .currencies import CurrencyPolicy
-from .units import UNKNOWN_UNIT_PATTERN, UNIT_END, UNIT_PATTERN, looks_like_unit, parse_unit
+from .units import UNKNOWN_UNIT_PATTERN, UNIT_END, UNIT_PATTERN, looks_like_unit
 from .readings import (DASH, DASH_CHARS, SIGN, SIGN_CHARS, VULGAR_FRACTIONS,
                        letter, roman)
 
@@ -81,13 +81,6 @@ def _number(text: str, *, neuter: bool = False, gender: str | None = None,
     return result
 
 
-def _unit(match: re.Match, *, decimal_style: str = "natural", language: str = "nb") -> str:
-    raw = match["number"]
-    unit = parse_unit(match["unit"], language=language)
-    singular = _integer(raw.split(",")[0]) in (-1, 1) and "," not in raw
-    return _number(raw, gender=unit.number_gender, decimal_style=decimal_style, language=language) + " " + (unit.singular if singular else unit.plural)
-
-
 def _clock(match: re.Match, *, language: str = "nb") -> str:
     hour, minute = int(match["hour"]), int(match["minute"] or 0)
     if hour > 24 or minute > 59 or hour == 24 and minute != 0:
@@ -98,11 +91,11 @@ def _clock(match: re.Match, *, language: str = "nb") -> str:
     return ("klokka " if match.groupdict().get("prefix") else "") + words
 
 
-def _date(match: re.Match, pivot: int = 50, *, language: str = "nb") -> str:
-    return _date_fields(match.groupdict(), pivot, language=language)
+def _date(match: re.Match, pivot: int = 50, *, language: str = "nb", year_style: str = "pairs") -> str:
+    return _date_fields(match.groupdict(), pivot, language=language, year_style=year_style)
 
 
-def _date_fields(groups: Mapping[str, str], pivot: int = 50, *, language: str = "nb") -> str:
+def _date_fields(groups: Mapping[str, str], pivot: int = 50, *, language: str = "nb", year_style: str = "pairs") -> str:
     day = int(groups["day"])
     month = groups["month"]
     month = MONTH_ALIASES[month.lower()] if not month.isdigit() else int(month)
@@ -111,15 +104,15 @@ def _date_fields(groups: Mapping[str, str], pivot: int = 50, *, language: str = 
     if raw_year and len(raw_year) == 2:
         y += 2000 if y < pivot else 1900
     date(y if y is not None else 2000, month, day)  # Allows 29 February without a year.
-    return ordinal(day, language=language) + " " + MONTHS[month - 1] + (" " + year(y, language=language) if y else "")
+    return ordinal(day, language=language) + " " + MONTHS[month - 1] + (" " + year(y, language=language, style=year_style) if y else "")
 
 
-def _numeric_date(text: str, pivot: int, *, language: str = "nb") -> str:
+def _numeric_date(text: str, pivot: int, *, language: str = "nb", year_style: str = "pairs") -> str:
     parts = re.split(rf"[ \t]*(?:[./]+|{DASH})[ \t]*", text.strip())
     if len(parts) != 3:
         raise ValueError("unsupported numeric date")
     y, month, day = parts if len(parts[0]) == 4 else (parts[2], parts[1], parts[0])
-    return _date_fields({"year": y, "month": month, "day": day}, pivot, language=language)
+    return _date_fields({"year": y, "month": month, "day": day}, pivot, language=language, year_style=year_style)
 
 
 class NorwegianNormalizer:
@@ -134,9 +127,16 @@ class NorwegianNormalizer:
     def __init__(self, *, acronyms: Mapping[str, str] | None = None,
                  two_digit_year_pivot: int = 50, channels: Mapping[str, str] | None = None,
                  currency_locale: str = "nb-NO", symbol_currencies: Mapping[str, str | None] | None = None,
-                 decimal_style: str = "natural", language: str = "nb"):
+                 decimal_style: str = "natural", language: str = "nb",
+                 scientific_units: bool = True, year_style: str = "pairs"):
         self.profile = get_profile(language)
         self.language = self.profile.code
+        if not isinstance(scientific_units, bool):
+            raise ValueError("scientific_units must be a bool")
+        if year_style not in ("pairs", "traditional"):
+            raise ValueError("year_style must be pairs or traditional")
+        self.scientific_units = scientific_units
+        self.year_style = year_style
         if not 0 <= two_digit_year_pivot <= 100:
             raise ValueError("two_digit_year_pivot must be in 0..100")
         self.acronyms = dict(ACRONYMS if acronyms is None else acronyms)
@@ -157,21 +157,29 @@ class NorwegianNormalizer:
         # Bind renderers per call/instance; never mutate a process-global language.
         cardinal = partial(number_readings.cardinal, language=self.language)
         ordinal = partial(number_readings.ordinal, language=self.language)
-        year = partial(number_readings.year, language=self.language)
+        year = partial(number_readings.year, language=self.language, style=self.year_style)
         digits = partial(spoken_readings.digits, language=self.language)
         fraction = partial(spoken_readings.fraction, language=self.language)
         version = partial(spoken_readings.version, language=self.language)
-        parse_unit = partial(unit_readings.parse_unit, language=self.language)
-        date_fields = partial(_date_fields, language=self.language)
-        date_words = partial(_date, language=self.language)
-        numeric_date_words = partial(_numeric_date, language=self.language)
+        def parse_unit(symbol: str):
+            if (not self.scientific_units and len(symbol) == 1 and symbol.isascii()
+                    and symbol.isalpha() and symbol not in "mglLsh"):
+                name = letter(symbol)
+                return unit_readings.UnitReading(name, name)
+            return unit_readings.parse_unit(symbol, language=self.language)
+        date_fields = partial(_date_fields, language=self.language, year_style=self.year_style)
+        date_words = partial(_date, language=self.language, year_style=self.year_style)
+        numeric_date_words = partial(_numeric_date, language=self.language, year_style=self.year_style)
         clock_words = partial(_clock, language=self.language)
 
         def number(raw: str, *, gender: str | None = None) -> str:
             return _number(raw, decimal_style=self.decimal_style, language=self.language, gender=gender)
 
         def unit_words(match: re.Match) -> str:
-            return _unit(match, decimal_style=self.decimal_style, language=self.language)
+            raw = match["number"]
+            unit = parse_unit(match["unit"])
+            singular = _integer(raw.split(",")[0]) in (-1, 1) and "," not in raw
+            return number(raw, gender=unit.number_gender) + " " + (unit.singular if singular else unit.plural)
 
         def apply(pattern: str, category: str, convert: Callable[[re.Match], str],
                   *, flags: int = re.IGNORECASE,
@@ -528,6 +536,11 @@ class NorwegianNormalizer:
 
         for abbreviation, spoken in self.profile.abbreviations.items():
             apply(r"(?<!\w)" + re.escape(abbreviation) + r"(?!\w)", "abbreviation", lambda m, s=spoken: s)
+        # Tolerate missing final dots only for an explicit, conservative list.
+        for abbreviation in ("f.eks.", "bl.a.", "t.d.", "m.a.", "osv.", "osb.", "dvs.", "pga."):
+            if abbreviation in self.profile.abbreviations:
+                apply(r"(?<!\w)" + re.escape(abbreviation[:-1]) + r"(?![\w.])", "abbreviation",
+                      lambda m, s=self.profile.abbreviations[abbreviation]: s)
         for acronym, spoken in self.acronyms.items():
             apply(r"(?<!\w)" + re.escape(acronym) + r"(?!\w)", "acronym", lambda m, s=spoken: s, flags=0)
 

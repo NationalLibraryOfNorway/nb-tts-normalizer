@@ -72,6 +72,11 @@ PREFIXES = {
     "r": "ronto", "q": "quecto",
 }
 ALIASES = {
+    "mins": UnitReading("minutt", "minutter", True),
+    "hr": UnitReading("time", "timer"),
+    "hrs": UnitReading("time", "timer"),
+    "sec": UnitReading("sekund", "sekunder", True),
+    "secs": UnitReading("sekund", "sekunder", True),
     "kg": UnitReading("kilo", "kilo"),  # Preserve the existing everyday reading.
     "min": UnitReading("minutt", "minutter", True),
     "h": UnitReading("time", "timer"),

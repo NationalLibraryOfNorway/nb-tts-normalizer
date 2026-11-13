@@ -51,9 +51,9 @@ class ScientificTests(unittest.TestCase):
 
     def test_full_sentences_units_and_offsets(self):
         self.check("Den 8. mai 2026 målte vi 1,2 × 10⁻³ m/s² etter § 2-1; prisen var kr 150,50.",
-                   "Den åttende mai to tusen og tjueseks målte vi en komma to ganger ti opphøyd i minus tre meter per sekund i annen etter paragraf to en; prisen var hundre og femti kroner og femti øre.")
+                   "Den åttende mai tjue tjueseks målte vi en komma to ganger ti opphøyd i minus tre meter per sekund i annen etter paragraf to en; prisen var hundre og femti kroner og femti øre.")
         self.check("Den 8. mai 2026 målte vi 1.2e-3 m/s² etter § 2-1; prisen var kr 150,50.",
-                   "Den åttande mai to tusen og tjueseks målte vi ein komma to gonger ti opphøgd i minus tre meter per sekund i andre etter paragraf to ein; prisen var hundre og femti kroner og femti øre.", "nn")
+                   "Den åttande mai tjue tjueseks målte vi ein komma to gonger ti opphøgd i minus tre meter per sekund i andre etter paragraf to ein; prisen var hundre og femti kroner og femti øre.", "nn")
         self.check("Verdien er 1.2e-3.", "Verdien er en komma to ganger ti opphøyd i minus tre.")
         self.check("1.2e-3 J/(kg K)", "en komma to ganger ti opphøyd i minus tre joule per kilo kelvin")
         self.check("1.2e-3 og 2 m", "en komma to ganger ti opphøyd i minus tre og to meter")

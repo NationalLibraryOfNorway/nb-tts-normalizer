@@ -1,5 +1,32 @@
 # Sources and implementation provenance
 
+## Reading preferences and abbreviation aliases (2026-11-13)
+
+Version 0.9.0 implements user-requested first-party reading policies: contextual
+four-digit years default to two groups (exact centuries use `hundre`; final
+01–09 groups include `null`), with the previous mixed convention retained as
+`year_style="traditional"`. This is a configurable speech preference, not a
+claim that all years from 1000 to 9999 are conventionally spoken this way.
+Existing numeral spelling and grammar sources below remain unchanged.
+
+`scientific_units=True` retains numeric physical-unit readings by default;
+disabling it spells standalone ASCII letter symbols as letters, except everyday
+`m`, `g`, `l`/`L`, `s`, `h`. Multi-letter units (including `kg`, `mg`), explicit
+temperature symbols and compound/powered units remain supported. No topic
+classifier or new unit-name dataset is introduced. Name-initial review guards
+are preserved in either mode.
+
+Bare `$`/`¥` use plain dollar/yuan names while retaining USD/CNY identities and
+precision; explicit country markers and alternate currency mappings retain
+qualified names. This is project wording policy, not a currency-definition change.
+
+Missing-final-dot aliases are manually selected from the existing abbreviation
+dictionary (`f.eks`, `bl.a`, `osv`, `dvs`, `pga`, NN `t.d`, `m.a`, `osb`). The
+quantity-only `mins`, `hr`, `hrs`, `sec`, `secs` aliases map to existing Norwegian
+minute/hour/second readings and their already cited grammatical forms. These
+are first-party input-tolerance aliases, not claims of official SI symbols or
+preferred Norwegian spelling. No new external code, text or dataset was copied.
+
 ## Scientific-number proposal (2026-11-13)
 
 First-party implementation in `nb_tn/scientific.py`, integrated into the original

@@ -54,6 +54,16 @@ plain text output includes unchanged unresolved spans and warnings go to stderr.
 remains the default. Nynorsk (`nn`) is explicit; this is not language detection
 or translation of surrounding prose. See the Nynorsk examples below.
 
+`--year-style {pairs,traditional}` defaults to `pairs`: contextual four-digit
+years are read as two groups (`2026` → `tjue tjueseks`). Use `traditional` for
+the previous mixed policy (paired 1100–1999, cardinal otherwise).
+
+`--scientific-units` is **enabled by default**. `--no-scientific-units` spells
+ambiguous single-letter symbols as letters after numbers (`2 V` → `to ve`).
+It does not disable scientific-number notation, explicit compound units,
+temperature symbols `°C`/`°F`, or everyday units `m`, `g`, `kg`, `mg`, `l`, `s`, `h`.
+The uppercase litre alias `L` is also retained. `K` follows the scientific switch.
+
 `--decimal-style {natural,digits}` selects decimal speech. The default `natural`
 reads `3,14` as `tre komma fjorten`; `digits` gives `tre komma en fire` for
 technical or instructional use. See the decimal policy below for leading zeros
@@ -128,7 +138,7 @@ from nb_tn import NorwegianNormalizer
 
 nn = NorwegianNormalizer(language="nn")
 assert nn.normalize("NOK 1,01 og 2 kWh") == "ei krone og eitt øre og to kilowattimar"
-assert nn.normalize("8. mai 2026") == "åttande mai to tusen og tjueseks"
+assert nn.normalize("8. mai 2026") == "åttande mai tjue tjueseks"
 assert nn.normalize("§§ 1–3") == "paragrafane ein til tre"
 assert nn.normalize("t.d. 1 kg") == "til dømes ein kilo"
 
@@ -138,7 +148,7 @@ assert nn.normalize("3,21") == "tre komma tjueein"
 
 # Input separators are independent of the language used for speech.
 nn_us = NorwegianNormalizer(language="nn", currency_locale="en-US")
-assert nn_us.normalize("$1.01") == "ein amerikansk dollar og ein cent"
+assert nn_us.normalize("$1.01") == "ein dollar og ein cent"
 ```
 
 ```bash
@@ -158,7 +168,7 @@ Etter § 2-1 skal 1,75 m kabel koste kr 150,50 ved levering 8. mai 2026.
 Output:
 
 ```text
-Etter paragraf to ein skal ein komma syttifem meter kabel koste hundre og femti kroner og femti øre ved levering åttande mai to tusen og tjueseks.
+Etter paragraf to ein skal ein komma syttifem meter kabel koste hundre og femti kroner og femti øre ved levering åttande mai tjue tjueseks.
 ```
 
 Input:
@@ -170,7 +180,7 @@ Den 8 . 5 . 2026 vart 75 m2 leigde ut for $125,75, med eit tillegg på 3,14 % et
 Output:
 
 ```text
-Den åttande mai to tusen og tjueseks vart syttifem kvadratmeter leigde ut for hundre og tjuefem amerikanske dollar og syttifem cent, med eit tillegg på tre komma fjorten prosent etter paragrafane tre til fem.
+Den åttande mai tjue tjueseks vart syttifem kvadratmeter leigde ut for hundre og tjuefem dollar og syttifem cent, med eit tillegg på tre komma fjorten prosent etter paragrafane tre til fem.
 ```
 
 Input:
@@ -182,7 +192,7 @@ Etter § 7 skal prisen 8. juni 2026 vere ¥1,21 per 1,75 kWh, medan toleransen e
 Output:
 
 ```text
-Etter paragraf sju skal prisen åttande juni to tusen og tjueseks vere ein komma tjueein kinesiske yuan per ein komma syttifem kilowattimar, medan toleransen er null komma null fem prosent.
+Etter paragraf sju skal prisen åttande juni tjue tjueseks vere ein komma tjueein yuan per ein komma syttifem kilowattimar, medan toleransen er null komma null fem prosent.
 ```
 
 Both languages use the same span engine and validation rules. Nynorsk covers
@@ -347,7 +357,7 @@ categories are supported by the Nynorsk profile with localized generated words.
 | `1. mai`, `01.05.2026`, `2026-05-01` | Ordinal day, Norwegian month name, optional year; calendar validity checked |
 | `1 . 5 . 2026`, `1/5/2026`, `1-5-26`, `1mai2026`, `1. sept. 2026` | Tolerate spacing, separators, abbreviated months, missing dots and two-digit years |
 | `01.05`, `1.–3. mai`, `1.-3.5.2026` | Day/month dates and date ranges; Norwegian ordering |
-| `året 1998`, date year `1998` | `nitten nittiåtte`; 1905 uses `nitten null fem`; 2005 uses `to tusen og fem` |
+| `året 1998`, date year `1998` | `nitten nittiåtte`; 1905 uses `nitten null fem`; 2005 uses `tjue null fem` |
 | `kl. 17:03`, `klokken 09.05`, `kl. 0905`, `12:30` | Digital clock reading; no colloquial `halv`/`kvart` forms |
 | `kl. 09.00-10.30`, `09:00—10:30` | Clock ranges with `til` |
 | `10–15`, `10-15 km`, `10—15 %`, `kr 10−15` | Numeric ranges with ASCII, Unicode hyphens/dashes, and minus-shaped separators |
@@ -386,7 +396,55 @@ other identifiers. Explicit supported amount/measure contexts can use the larger
 range. A plain four-digit integer uses the cardinal reading unless it occurs in
 a recognized date or is introduced by `år`/`året`.
 
+### Contextual year readings
+
+The paired-year default applies to recognized dates and `år`/`året` contexts,
+not arbitrary four-digit numbers, quantities, identifiers or version components.
+Years 1000–9999 use two groups; exact centuries end in `hundre`, and final groups
+01–09 include `null`. Years below 1000 keep their cardinal reading.
+
+| Year | Bokmål | Nynorsk |
+|---|---|---|
+| 1000 | ti hundre | same |
+| 1001 | ti null en | ti null ein |
+| 1984 | nitten åttifire | same |
+| 2000 | tjue hundre | same |
+| 2005 | tjue null fem | same |
+| 2026 | tjue tjueseks | same |
+| 2101 | tjueen null en | tjueein null ein |
+| 9999 | nittini nittini | same |
+
+This is the project's requested reading preference, not a claim that every
+paired form is universally preferred. `year_style="traditional"` restores the
+previous behavior. Calendar validation and the two-digit-year pivot are unchanged.
+
+```python
+plain_letters = NorwegianNormalizer(scientific_units=False, year_style="pairs")
+assert plain_letters.normalize("året 2026 og 2 V") == "året tjue tjueseks og to ve"
+assert NorwegianNormalizer(year_style="traditional").normalize("året 2026") == "året to tusen og tjueseks"
+```
+
+### Tolerated abbreviation aliases
+
+Selected abbreviations may omit their final dot: `f.eks`, `bl.a`, `osv`, `dvs`,
+`pga`, and, in Nynorsk, `t.d`, `m.a`, `osb`. Existing dotted spellings still work;
+this is input tolerance, not a recommendation to omit punctuation in prose.
+Word boundaries prevent substitutions inside longer words.
+
+After a numeric quantity, `mins` means minutes, `hr`/`hrs` hours, and `sec`/`secs`
+seconds. These aliases use Norwegian names and singular/plural agreement:
+`2 mins, 1 hr og 2 secs` → Bokmål `to minutter, en time og to sekunder`,
+Nynorsk `to minutt, ein time og to sekund`. They remain enabled with scientific
+units disabled. Bare `mins`, `hrs`, and `secs` without a quantity remain prose;
+the aliases do not enable general English-language normalization.
+
 ## Foreign currencies, input locale and code-switching
+
+Bare `$` and `¥` retain USD/CNY defaults but use plain `dollar`/`yuan` in both
+languages, including ranges and decimals. Explicit codes or qualified markers
+retain qualified names: `USD`, `US$` → `amerikanske dollar`; `CNY`, `CN¥` →
+`kinesiske yuan`. An explicit alternate mapping (for example `$` → CAD or `¥` →
+JPY) retains `kanadiske dollar` or `japanske yen`, rather than misnaming the currency.
 
 All supported amounts are verbalized **in the selected Norwegian language**
 (Bokmål by default, or Nynorsk), regardless of
@@ -398,8 +456,8 @@ numeric monetary ranges are recognized.
 | Input, default `currency_locale="nb-NO"` | Output |
 | --- | --- |
 | `100 USD` | `hundre amerikanske dollar` |
-| `$10` | `ti amerikanske dollar` |
-| `¥100` | `hundre kinesiske yuan` |
+| `$10` | `ti dollar` |
+| `¥100` | `hundre yuan` |
 | `EUR 12,50` | `tolv euro og femti cent` |
 | `GBP 1,01` | `ett britisk pund og en penny` |
 | `SEK 1,01` | `en svensk krone og ett øre` |
@@ -432,7 +490,7 @@ us_format = NorwegianNormalizer(
     currency_locale="en-US",
     symbol_currencies={"¥": "JPY"},  # Override yuan; $ already defaults to USD.
 )
-assert us_format.normalize("$12.50") == "tolv amerikanske dollar og femti cent"
+assert us_format.normalize("$12.50") == "tolv dollar og femti cent"
 assert us_format.normalize("¥100") == "hundre japanske yen"
 ```
 
@@ -631,6 +689,16 @@ forms such as `2 C. Dahl` are also preserved and flagged.
 
 ### Scientific numbers
 
+These examples use `scientific_units=True`, the default. With
+`scientific_units=False`, a standalone ASCII single-letter symbol after a
+quantity is spelled as a letter unless it is an everyday unit (`m`, `g`, `l`,
+`L`, `s`, `h`). `kg` and `mg` are unchanged too. This applies to decimals,
+fractions, ranges and scientific numbers, without changing numeric speech.
+Explicit compound/powered/prefixed forms such as `V/m`, `A²`, `m/s²` and `kW`
+continue to expand. Bare letters without quantities and ambiguous personal-name
+contexts retain their existing treatment. This is a reading preference, not
+automatic scientific-topic detection.
+
 Single-letter unit symbols (`N`, `C`, `J`, `W`, and others) are expanded only in
 a numeric quantity, never as bare letters or personal initials. A preceding
 number is necessary but not always sufficient: `2 N. Hansen` remains unchanged
@@ -697,12 +765,12 @@ Actual full-sentence outputs, covered by exact tests:
 Bokmål input:
 Den 8. mai 2026 målte vi 1,2 × 10⁻³ m/s² etter § 2-1; prisen var kr 150,50.
 Output:
-Den åttende mai to tusen og tjueseks målte vi en komma to ganger ti opphøyd i minus tre meter per sekund i annen etter paragraf to en; prisen var hundre og femti kroner og femti øre.
+Den åttende mai tjue tjueseks målte vi en komma to ganger ti opphøyd i minus tre meter per sekund i annen etter paragraf to en; prisen var hundre og femti kroner og femti øre.
 
 Nynorsk input:
 Den 8. mai 2026 målte vi 1.2e-3 m/s² etter § 2-1; prisen var kr 150,50.
 Output:
-Den åttande mai to tusen og tjueseks målte vi ein komma to gonger ti opphøgd i minus tre meter per sekund i andre etter paragraf to ein; prisen var hundre og femti kroner og femti øre.
+Den åttande mai tjue tjueseks målte vi ein komma to gonger ti opphøgd i minus tre meter per sekund i andre etter paragraf to ein; prisen var hundre og femti kroner og femti øre.
 ```
 
 The mathematical basis is [NDLA](https://ndla.no/r/matematikk-1p/tierpotenser-og-tall-pa-standardform/34909c868c)
@@ -721,13 +789,13 @@ Bokmål input:
 Den 8. mai 2026 målte vi 9,81 m/s² og 2 A², og kontrollen kostet kr 150,50 etter § 2-1.
 
 Bokmål output:
-Den åttende mai to tusen og tjueseks målte vi ni komma åttien meter per sekund i annen og to ampere i annen, og kontrollen kostet hundre og femti kroner og femti øre etter paragraf to en.
+Den åttende mai tjue tjueseks målte vi ni komma åttien meter per sekund i annen og to ampere i annen, og kontrollen kostet hundre og femti kroner og femti øre etter paragraf to en.
 
 Nynorsk input:
 Den 8. mai 2026 målte vi 9,81 m/s² og 2 A², og kontrollen kosta kr 150,50 etter § 2-1.
 
 Nynorsk output:
-Den åttande mai to tusen og tjueseks målte vi ni komma åttiein meter per sekund i andre og to ampere i andre, og kontrollen kosta hundre og femti kroner og femti øre etter paragraf to ein.
+Den åttande mai tjue tjueseks målte vi ni komma åttiein meter per sekund i andre og to ampere i andre, og kontrollen kosta hundre og femti kroner og femti øre etter paragraf to ein.
 ```
 
 `l` and `L` both mean liter; `µ`, `μ` and ASCII `u` are accepted micro-prefix

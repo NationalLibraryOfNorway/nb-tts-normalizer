@@ -141,12 +141,12 @@ class PdfUnitTests(unittest.TestCase):
     def test_full_sentence_examples_are_exact(self):
         for language, original, expected in (
             ("nb", "Den 8. mai 2026 målte vi 9,81 m/s² og 2 A², og kontrollen kostet kr 150,50 etter § 2-1.",
-             "Den åttende mai to tusen og tjueseks målte vi ni komma åttien meter per sekund i annen og to ampere i annen, og kontrollen kostet hundre og femti kroner og femti øre etter paragraf to en."),
+             "Den åttende mai tjue tjueseks målte vi ni komma åttien meter per sekund i annen og to ampere i annen, og kontrollen kostet hundre og femti kroner og femti øre etter paragraf to en."),
             ("nn", "Den 8. mai 2026 målte vi 9,81 m/s² og 2 A², og kontrollen kosta kr 150,50 etter § 2-1.",
-             "Den åttande mai to tusen og tjueseks målte vi ni komma åttiein meter per sekund i andre og to ampere i andre, og kontrollen kosta hundre og femti kroner og femti øre etter paragraf to ein."),
+             "Den åttande mai tjue tjueseks målte vi ni komma åttiein meter per sekund i andre og to ampere i andre, og kontrollen kosta hundre og femti kroner og femti øre etter paragraf to ein."),
             ("nb", "Etter § 4 (2) viste målingen 9,81 m/s² og 3,14 V² den 9. juni 2026, og gebyret var EUR 12,50.",
-             "Etter paragraf fire andre ledd viste målingen ni komma åttien meter per sekund i annen og tre komma fjorten volt i annen den niende juni to tusen og tjueseks, og gebyret var tolv euro og femti cent."),
+             "Etter paragraf fire andre ledd viste målingen ni komma åttien meter per sekund i annen og tre komma fjorten volt i annen den niende juni tjue tjueseks, og gebyret var tolv euro og femti cent."),
             ("nn", "Etter § 4 (2) viste målinga 9,81 m/s² og 3,14 V² den 9. juni 2026, og gebyret var EUR 12,50.",
-             "Etter paragraf fire andre ledd viste målinga ni komma åttiein meter per sekund i andre og tre komma fjorten volt i andre den niande juni to tusen og tjueseks, og gebyret var tolv euro og femti cent."),
+             "Etter paragraf fire andre ledd viste målinga ni komma åttiein meter per sekund i andre og tre komma fjorten volt i andre den niande juni tjue tjueseks, og gebyret var tolv euro og femti cent."),
         ):
             self.check(original, expected, language)

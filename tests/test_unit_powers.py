@@ -55,14 +55,14 @@ class UnitPowerTests(unittest.TestCase):
                 with self.subTest(language=language, text=text):
                     self.check_reading(text, expected, language=language)
             # Unit wording must not globally replace the ordinary ordinal 2.
-            self.check_reading("2. mai 2026", "andre mai to tusen og tjueseks", language=language)
+            self.check_reading("2. mai 2026", "andre mai tjue tjueseks", language=language)
 
     def test_full_sentences_and_unchanged_written_readings(self):
         for language, input_text, expected in (
             ("nb", "Den 8. mai 2026 var akselerasjonen 9,81 m/s², jf. § 2-1.",
-             "Den åttende mai to tusen og tjueseks var akselerasjonen ni komma åttien meter per sekund i annen, jamfør paragraf to en."),
+             "Den åttende mai tjue tjueseks var akselerasjonen ni komma åttien meter per sekund i annen, jamfør paragraf to en."),
             ("nn", "Den 8. mai 2026 var akselerasjonen 9,81 m/s², jf. § 2-1.",
-             "Den åttande mai to tusen og tjueseks var akselerasjonen ni komma åttiein meter per sekund i andre, jamfør paragraf to ein."),
+             "Den åttande mai tjue tjueseks var akselerasjonen ni komma åttiein meter per sekund i andre, jamfør paragraf to ein."),
         ):
             self.check_reading(input_text, expected, language=language)
         for phrase in ("sekund i annen", "sekund i andre", "sekund i kvadrat"):
